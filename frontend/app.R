@@ -45,43 +45,29 @@ hcErrors <- highchart() %>% hc_chart(type = "") %>%
 ui <- dashboardPage(skin = 'green',
                     dashboardHeader(
                       #title = "Integración de observaciones de la tierra para la toma de decisiones sobre biodiversidad en Colombia", 
-                      title = "(v. Beta) Integración de observaciones de la tierra para la toma de decisiones sobre biodiversidad en Colombia", 
+                      title = "Forest4Water - Call4Code IBM", 
                       #title = tags$a(#href='http://rsensus.org/en/', "Decision support sytem for Colombian BON v. Beta"),
-                      titleWidth = 1000),
+                      titleWidth = 400
+                      ),
                     dashboardSidebar(
                       sidebarMenu(
+                        
+                        
                         # UI Panel  ---------------
+                        # exclamation-triangle leaf globe #frog dove charts 
+                        # https://getbootstrap.com/docs/3.3/components/ 
+                        # http://glyphicons.com/ 
+                        # https://fontawesome.com/icons?d=gallery
                         
-                        menuItem("Inicio", tabName = "intro"),
-                        menuItem("Definir region de estudio", tabName = "draw") ,
+                        menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("exclamation-triangle"), 
+                                 menuSubItem("Goal", tabName = "tab_goal", icon = icon("exclamation-triangle")),
+                                 menuSubItem("Purpouse", tabName = "tab_purp", icon = icon("exclamation-triangle")),
+                                 menuSubItem("How it works", tabName = "tab_how", icon = icon("exclamation-triangle"))),
+                        #menuItem("Definir region de estudio", tabName = "draw") ,
                         
-                        menuItem("Ecosistemas", tabName = "tab_ecosystem", startExpanded = TRUE,
-                                 menuSubItem("Bosques", tabName = "in_forest"),
-                                 menuSubItem("Corine Land Cover", tabName = "in_clc"),
-                                 menuSubItem("Lista roja ecosistemas", tabName = "in_red"),
-                                 menuSubItem("Región biotica", tabName = "in_biot"),
-                                 menuSubItem("Biomas", tabName = "in_biom"),
-                                 menuSubItem("Bosque seco tropical", tabName = "in_dry"),
-                                 menuSubItem("Páramos", tabName = "in_param"),
-                                 menuSubItem("Humedales", tabName = "in_wet")
-                        ),
+                        menuItem("Find water!", tabName = "tab_findwater", icon = icon("exclamation-triangle")),
+                        menuItem("Assess water!", tabName = "tab_assesswater", icon = icon("exclamation-triangle"))
                         
-                        menuItem("Manejo", tabName = "tab_managment", startExpanded = TRUE,
-                                 menuSubItem("Áreas protegidas", tabName = "in_ap"),
-                                 menuSubItem("Áreas colectivas", tabName = "in_cole"),
-                                 menuSubItem("Manejo especial", tabName = "in_sma"),
-                                 menuSubItem("Factor de Compensación", tabName = "in_comp")
-                        ),
-                        menuItem("Especies", tabName = "tab_species", startExpanded = TRUE,
-                                 menuSubItem("UICN", tabName = "in_uicn"),
-                                 menuSubItem("Biomodelos", tabName = "in_biod"),
-                                 menuSubItem("GBIF", tabName = "in_rec")
-                        ),
-                        menuItem("Índices", tabName = "tab_index", startExpanded = TRUE,
-                              #   menuSubItem("Índice de lista roja", tabName = "in_rli"),
-                                 menuSubItem("Superficie y registros", tabName = "in_sur")
-                        ),
-                        menuItem("Contacto", tabName = "contact")
                       )
                     ),
                     
@@ -174,19 +160,19 @@ ui <- dashboardPage(skin = 'green',
                                 )
                         ),
                         
-                        tabItem("in_clc",
+                        tabItem("tab_findwater",
                                 fluidRow(h3(' ')),
                                 h5(''),
                                 fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
                                   column(width = 6,
-                                         fluidRow(
-                                           column(width = 6, selectInput(inputId = "aoi_clc", 
-                                                                         label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
-                                           column(width = 4, selectInput(inputId = "clc_lev", 
-                                                                         label = "Nivel: ", choices =  c(1:3), selected = 1)),
-                                           column(width = 2, actionButton("go_clc", "Ejecutar")) 
-                                         ),
-                                         leafletOutput("clcLeaf", height = "600px")
+                                           column(width = 2, actionButton("go_find", "Ejecutar")),
+                                         # fluidRow(
+                                         #   column(width = 6, selectInput(inputId = "aoi_clc", 
+                                         #                                 label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
+                                         #   column(width = 4, selectInput(inputId = "clc_lev", 
+                                         #                                 label = "Nivel: ", choices =  c(1:3), selected = 1)),
+                                         # ),
+                                         leafletOutput("findLeaf", height = "600px")
                                   ),
                                   
                                   column(width = 6, 
@@ -487,6 +473,16 @@ server <- function(input, output, session) {
   # smaPlot1, smaPlot2, compPlot1, compPlot2, uicnPlot1, uicnPlot2, biodPlot1, biodPlot2, recPlot1, recPlot2, 
   # rliPlot1, rliPlot2, surPlot1, surPlot2
   
+  observeEvent(input$findLeaf_click, {
+    click <- input$findLeaf_click
+    
+    text<-paste("Lattitude:", round(click$lat, 2),
+                "<br>Longtitude:", round(click$lng, 4),
+                "<br>Date:", Sys.Date())
+    proxy <- leafletProxy("findLeaf")
+    proxy %>% clearPopups() %>%
+      addPopups(click$lng, click$lat, text)
+  })
   
   ##### Default widgets ----------------------
   
@@ -510,7 +506,7 @@ server <- function(input, output, session) {
   
   ##### Leaflets ----------------------
   
-  output$clcLeaf <- output$redLeaf <- output$biotLeaf <- output$biomLeaf <- output$wetLeaf <- 
+  output$findLeaf <- output$clcLeaf <- output$redLeaf <- output$biotLeaf <- output$biomLeaf <- output$wetLeaf <- 
     output$apLeaf <- output$coleLeaf <- 
     output$smaLeaf <- output$compLeaf <- output$uicnLeaf <- output$biodLeaf <- output$recLeaf <- output$surLeaf <- 
     output$dryLeaf <- output$paramLeaf <- output$leafForest <- renderLeaflet({

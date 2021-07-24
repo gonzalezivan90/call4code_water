@@ -688,10 +688,20 @@ server <- function(input, output, session) {
   #     addPopups(click$lng, click$lat, text)
   # })
   
+  observeEvent(input$findLeaf_click, {
+    click <- input$findLeaf_click
+    text<-paste("Lattitude:", round(click$lat, 2),
+                "<br>Longtitude:", round(click$lng, 4),
+                "<br>Date:", Sys.Date())
+    proxy <- leafletProxy("findLeaf")
+    proxy %>% clearPopups() %>%
+      addPopups(click$lng, click$lat, text)
+  })
+  
   isolate(observeEvent(input$go_find,{
     readyLayer <- FALSE
     polDraw <- input$leafForest_draw_new_feature
-    inClick <- input$leafFind_click
+    inClick <- input$findLeaf_click
     print(str(inClick))
     
     if( (!is.null(polDraw) & input$aoi_forest  == 'Dibujar') |

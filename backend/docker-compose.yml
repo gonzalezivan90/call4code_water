@@ -1,0 +1,67 @@
+version: '3.6'
+services:
+  mongo:
+    image: mongo:3.6.17-xenial
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin_mongodb
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: biotablero
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo_storage:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      biotablero_net:
+        aliases:
+            - "biotablerodb"
+
+  biotablero-api:
+    build: .
+    image: biotablero:latest
+    container_name: biotablero
+    restart: always
+    depends_on:
+        - mongo
+    ports:
+      - 8000:8000
+    env_file:
+      - ./s3.env
+    deploy:
+     replicas: 5
+     restart_policy:
+       max_attempts: 3
+       condition: on-failure       
+     update_config:
+       parallelism: 3
+       delay: 10s
+    volumes:
+     - /data:/data
+    networks:
+      biotablero_net:
+        aliases:
+            - "biotablero-api"
+
+  load_balancer:
+    image: nginx:latest
+    container_name: nginx-loadbalancer
+    ports: 
+        - "8080:80"
+    volumes: 
+        - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks: 
+        - biotablero_net
+    depends_on: 
+        - biotablero-api
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+volumes:
+  mongo_storage:
+
+networks:
+  biotablero_net:
+    driver: overlay

@@ -161,11 +161,11 @@ ui <- dashboardPage(skin = 'green',
                         ),
                         
                         tabItem("tab_findwater",
-                                fluidRow(h3(' ')),
+                                #fluidRow(h3(' ')),
                                 h5(''),
                                 fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
                                   column(width = 6,
-                                           column(width = 2, actionButton("go_find", "Ejecutar")),
+                                           column(width = 2, actionButton("go_find", "Find water!")),
                                          # fluidRow(
                                          #   column(width = 6, selectInput(inputId = "aoi_clc", 
                                          #                                 label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
@@ -173,6 +173,7 @@ ui <- dashboardPage(skin = 'green',
                                          #                                 label = "Nivel: ", choices =  c(1:3), selected = 1)),
                                          # ),
                                          leafletOutput("findLeaf", height = "600px")
+                                         #leafletOutput("findLeaf", width = "90%", height = "90%")
                                   ),
                                   
                                   column(width = 6, 
@@ -472,17 +473,7 @@ server <- function(input, output, session) {
   # dryPlot1. dryPlot2, paramPlot1, paramPlot2, wetPlot1, wetPlot2, apPlot1, apPlot2, colePlot1, colePlot2,
   # smaPlot1, smaPlot2, compPlot1, compPlot2, uicnPlot1, uicnPlot2, biodPlot1, biodPlot2, recPlot1, recPlot2, 
   # rliPlot1, rliPlot2, surPlot1, surPlot2
-  
-  observeEvent(input$findLeaf_click, {
-    click <- input$findLeaf_click
-    
-    text<-paste("Lattitude:", round(click$lat, 2),
-                "<br>Longtitude:", round(click$lng, 4),
-                "<br>Date:", Sys.Date())
-    proxy <- leafletProxy("findLeaf")
-    proxy %>% clearPopups() %>%
-      addPopups(click$lng, click$lat, text)
-  })
+
   
   ##### Default widgets ----------------------
   
@@ -684,8 +675,86 @@ server <- function(input, output, session) {
   output$voutext <- renderText({isolate("Cargue su polígono")})
   
   
-  ##### Go buttons Forest  ----------------------  
+  ##### Go find water  ----------------------  
   # input <- list(forestyearrng = c(2000, 2005), forestporcrng = c(25, 100), forestsour = 'ideam')
+  
+  # observeEvent(input$ff_click, {
+  #   click <- input$ff_click
+  #   text<-paste("Lattitude:", round(click$lat, 2),
+  #               "<br>Longtitude:", round(click$lng, 4),
+  #               "<br>Date:", Sys.Date())
+  #   proxy <- leafletProxy("ff")
+  #   proxy %>% clearPopups() %>%
+  #     addPopups(click$lng, click$lat, text)
+  # })
+  
+  isolate(observeEvent(input$go_find,{
+    readyLayer <- FALSE
+    polDraw <- input$leafForest_draw_new_feature
+    inClick <- input$leafFind_click
+    print(str(inClick))
+    
+    if( (!is.null(polDraw) & input$aoi_forest  == 'Dibujar') |
+        (!is.null(shp) & input$aoi_forest  == 'Capa')) {
+      
+      #Valid option and layer
+      if(!is.null(polDraw) & input$aoi_forest  == 'Dibujar'){
+        coordMat <- do.call(rbind, polDraw$geometry$coordinates[[1]])
+        gwkt <- gsub( ' ', '%20',paste0('POLYGON((', 
+                                        paste(apply(coordMat, 1, paste, collapse = ' '), collapse = ','), '))'))
+      } else if (!is.null(shp) & input$aoi_forest == 'Capa'){ 
+        gwkt <<-  gwkt_orig  # gwkt <- gsub( ' ', '%20',writeWKT(shp, byid = F))
+      }
+      
+      output$foresttrend <- renderHighchart({
+        biotKm2 <- biotablero(server = 'web', webURL = aws, 
+                              port = aws_port, endpoint = 'polsizekm2', pol = gwkt, printURL = FALSE)
+        sprintf('Area: %s', biotKm2$polsizekm2)
+        
+        
+        biotForYearString <- paste0(input$forestyearrng[1], ':', input$forestyearrng[2])
+        biotForPorcString <- paste0(input$forestporcrng[1], ':', input$forestporcrng[2])
+        
+        # input <- list(forestsour = 'ideam')
+        biotForest <- biotablero(server = 'web', webURL = aws, port = aws_port,
+                                 endpoint = 'biotablero', metric = 'forest',
+                                 sour = input$forestsour, ebvstat = 'area',
+                                 ebvyear=biotForYearString, ebvporcrange = biotForPorcString,
+                                 pol = gwkt, printURL = TRUE)
+        
+        #save(biotForest, gwkt, biotForYearString, biotForPorcString , file = 'forestMet.RData')
+        #load('forestMet.RData')
+        #print('Done querying bt\n')
+        
+        if(class(biotForest) == 'list'){
+          if(class(biotForest$result) == 'data.frame'){
+            
+            hc1 <<- highchart() %>% hc_add_series(name = 'Area (km2)',
+                                                  type = "line",
+                                                  mapping = hcaes(x = year, y = area),
+                                                  data = biotForest$result) %>%
+              hc_title(text = paste( 'Area:', biotKm2, ' km2')) %>%
+              hc_xAxis(title = list(text = paste('Time: ',
+                                                 (biotForest$params['time',])))) %>%
+              hc_exporting(enabled = TRUE)
+            
+          }
+        } else if (class(biotForest) == 'character' | class(biotForest)[1] == 'simpleError'){
+          
+          hc1 <<- highchart() %>% hc_add_series(
+            name = 'Error',
+            type = "line",
+            mapping = hcaes(x = 1, y = 1)) %>%
+            hc_title(text = paste( 'Area:', biotKm2, ' km2')) %>%
+            hc_xAxis(title = list(text = unlist(biotForest[1]))) %>% 
+            hc_exporting(enabled = TRUE)
+        }
+        hc1
+      })
+      # input$leafmap_draw_new_feature <- NULL
+    }
+  }))
+  
   
   isolate(observeEvent(input$go_forest,{
     readyLayer <- FALSE

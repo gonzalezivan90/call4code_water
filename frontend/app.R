@@ -10,7 +10,7 @@ library(shinycssloaders)
 library(reshape2)
 # if(!'reshape2' %in% rownames(installed.packages())){installed.packages('reshape2')}
 # if(!'write.xlsx' %in% rownames(installed.packages())){install.packages('write.xlsx')}
-
+## Delete me please
 # install.packages('rgeos')
 # install.packages('leaflet.extras'
 # install.packages('highcharter')

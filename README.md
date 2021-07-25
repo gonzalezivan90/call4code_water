@@ -3,6 +3,18 @@
 Use this starter kit to understand how technology can improve access to clean drinking water, reduce water waste, and protect natural resources. 
 The starter kit provides tools and resources from our experts to help you jump-start your own solution for the 2021 Call for Code Global Challenge.
 
+## Descripción 📄
+
+### Pre-requisitos 📋  
+
+### Instalación 🔧
+
+### Ejecutando las pruebas ⚙️
+
+### Despliegue 📦
+
+### Construido con 🛠️
+
 ## Autores ✒️
 
 <div>

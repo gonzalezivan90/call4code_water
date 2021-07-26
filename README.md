@@ -6,17 +6,27 @@ The starter kit provides tools and resources from our experts to help you jump-s
 ## Descripción 📄
 
 ### Pre-requisitos 📋  
+Un Virtual Server for Classic IBM con entorno Ubuntu (20.04.2 LTS)
 
 ### Instalación 🔧
+Lanzar la máquina virtual. Instalar R y Shinny-server usando el código install-r-shiny-server dentro del folder backend
+Instalar docker, docker-compose usando el archivo bash.sh
+Mover  los archivos api.R, main.R y demás de la carpeta backend en la caprta ~/plumber/
+Desplegar el API usando el comando desde ~/pluber/: sudo docker stack deploy -c docker-compose.yml api # init services
 
 ### Ejecutando las pruebas ⚙️
+Abrir R desde consola linux: R
+Acceder al servidor shiny acccediendo a la página: http://169.60.171.142:3838
 
 ### Despliegue 📦
+Copiar los archivos de la carpeta /frontend al folder /srv/shiny-server/call4code 
+Acceder a la página http://169.60.171.142:3838/call4code
 
 ### Link de Youtube
 Nuestro Canal de Youtube [Forest4Water](https://www.youtube.com/channel/UCvzjHuCK_IibzNNFpnNbBYQ/featured)
 
 ### Construido con 🛠️
+IBM Cloud, R, Docker, HTML, GoogleEarthEngine
 
 ## Autores ✒️
 

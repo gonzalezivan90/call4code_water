@@ -14,6 +14,13 @@ Instalar docker, docker-compose usando el archivo bash.sh
 Mover  los archivos api.R, main.R y demás de la carpeta backend en la caprta ~/plumber/
 Desplegar el API usando el comando desde ~/pluber/: sudo docker stack deploy -c docker-compose.yml api # init services
 
+_Para instalar el chatboot de watson assistant_
+* [Abrir Watson Asistant](https://cloud.ibm.com/docs/assistant?topic=assistant-getting-started#getting-started-launch-tool)
+* [Crear un asistente](https://cloud.ibm.com/docs/assistant?topic=assistant-getting-started#getting-started-create-assistant)
+* [Crear un conocimiento de diálogo](https://cloud.ibm.com/docs/assistant?topic=assistant-getting-started#getting-started-add-skill)
+* Importar habilidad y cargar skill-Asistente-guiado.json
+* [Integrar el chatbot a la web](https://cloud.ibm.com/docs/assistant?topic=assistant-deploy-web-chat)
+
 ### Ejecutando las pruebas ⚙️
 Abrir R desde consola linux: R
 Acceder al servidor shiny acccediendo a la página: http://169.60.171.142:3838

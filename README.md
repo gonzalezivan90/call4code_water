@@ -6,6 +6,23 @@ The starter kit provides tools and resources from our experts to help you jump-s
 Prueba nuestra solución [forest4water!](http://169.60.171.142:3838/call4code/). Escríbenos tus comentarios o dudas :)
 
 ## Descripción 📄
+Esta herramienta pretende resolver el problema del Call4Code para el reto de agua limpia. Nosotros creemos que:
+- El agua en rios y lagunas depende mayoritariamente de la lluvia. 
+- Los humanos no podemos hacer que llueva más o menos
+- Las actividades humanas, como la deforestación, están incrementando la variablilidad y eventos extremos de las lluvias: más seqúias, más inundaciones.
+- Los bosques, que hacen llover, sí regulan la cantidad del agua: Atenúan el impacto de las sequías liberando agua acumulada, y disminuyen la severidad de inundaciones como resistencia mecánica y absorviendo parte del agua
+- La calidad del agua depende, entre otros, de la cantidad: en sequías y en avalanchas, los sedimentos en el  agua son elevados
+- Para tener agua potable, necesitamos que el caudal no tenga ni mucha no poca agua, pero tambien que no hayan sedimentos
+- Los bosques tambien ayudan a retener sedimentos, pues cuando no hay vegetación, la lluvia y el aire aportan particulas a los cuerrpos de agua
+- Mantener los bosques ayuda a regular cantidad y calidad de agua, en lo que se conoce como servicio ecosistémico de regulación hídrica
+
+La herramienta permite al usuario lo siguiente:
+- Basdado en un click, identificar cual es mi río más cercano, así como la cuenca en la está, y el punto más cercano al que debo desplazarme para encontrar agua. Esto soluciona un problema inmediato de acceso al agua.
+- Identificar la cuenca en la que estamos, pues el agua que veamos en el río depende de condiciones regionales.
+- Identificando la cuenca, extraemos dos elementos: 
+1. Estadísticas de lluvia (60-90) días, temperatura (60-90) y deforestación (20 años), para tener un proxy de calidad. Si contamos con lluvias altas o bajas, se señalarán unos umbrales (verde-naranja-rojo), así como temperatura, pues ante altas temperaturas, disminuye la cantidad de agua. También se reporta la deforestación histórica, pues ante menor cobertura de bosque, mayor cantidad de sedimentos. Esto informa al usuario sobre posible calidad del agua en la cuenca.
+2. Mapas de deforestación histórica. Orientado a tomadores de decisiónes para que identifiquen cuales zonas son las que no tiene bosques, y además han sido transformadas recientemente. La idea es poder atacar la raiz del problema: la deforestación reduce regulación hídrica y calidad del agua, pero a su vez genera gases efecto invernadero y reduce captura de carbono, que causan el cambio climático.
+
 
 ### Pre-requisitos 📋  
 Un Virtual Server for Classic IBM con entorno Ubuntu (20.04.2 LTS)

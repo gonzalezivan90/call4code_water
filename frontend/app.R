@@ -409,9 +409,6 @@ server <- function(input, output, session) {
             domain = 2000+c(0, 20)
           )
           
-        if ( Sys.info()["sysname"] == "Windows" 
-             #| any(grep('azure', Sys.info()["release"]))
-             ){
           treegee <- (leafGee + lltree + llloss ) %>%
             addLegend("bottomright", pal = palTree, values = c(0, 100),
                       title = "Forest cover", opacity = 1
@@ -419,6 +416,12 @@ server <- function(input, output, session) {
             addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20),
                       title = "Def. year", opacity = 1
             )
+          
+          tempName <- basename(tempfile())
+          save(treegee, file = paste0(outDir, ''))
+        if ( Sys.info()["sysname"] == "Windows" 
+             #| any(grep('azure', Sys.info()["release"]))
+             ){
           # 
           # str(treegee)
           # 

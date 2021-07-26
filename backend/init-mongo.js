@@ -1,7 +1,7 @@
 db.createUser(
     {
-        user: 'biotablero',
+        user: 'dbuser',
         pwd: 'admin',
-        roles: [ { role: "readWrite", db: "biotablero"} ] 
+        roles: [ { role: "readWrite", db: "dbuser"} ] 
     }
 )

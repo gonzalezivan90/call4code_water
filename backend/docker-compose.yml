@@ -7,7 +7,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin_mongodb
       MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: biotablero
+      MONGO_INITDB_DATABASE: dbuser
     ports:
       - 27017:27017
     volumes:
@@ -18,7 +18,7 @@ services:
         aliases:
             - "biotablerodb"
 
-  biotablero-api:
+  api:
     build: .
     image: biotablero:latest
     container_name: biotablero
@@ -42,7 +42,7 @@ services:
     networks:
       biotablero_net:
         aliases:
-            - "biotablero-api"
+            - "api"
 
   load_balancer:
     image: nginx:latest
@@ -54,7 +54,7 @@ services:
     networks: 
         - biotablero_net
     depends_on: 
-        - biotablero-api
+        - api
     deploy:
       placement:
         constraints: [node.role == manager]

@@ -9,8 +9,8 @@ Prueba nuestra solución [forest4water!](http://169.60.171.142:3838/call4code/).
 Esta herramienta pretende resolver el problema del Call4Code para el reto de agua limpia. Nosotros creemos que:
 - El agua en rios y lagunas depende mayoritariamente de la lluvia. 
 - Los humanos no podemos hacer que llueva más o menos
-- Las actividades humanas, como la deforestación, están incrementando la variablilidad y eventos extremos de las lluvias: más seqúias, más inundaciones.
-- Los bosques, que hacen llover, sí regulan la cantidad del agua: Atenúan el impacto de las sequías liberando agua acumulada, y disminuyen la severidad de inundaciones como resistencia mecánica y absorviendo parte del agua
+- Las actividades humanas, como la deforestación, están incrementando la variablilidad y eventos extremos de las lluvias: más sequías, más inundaciones.
+- Los bosques, que hacen no llover, sí regulan la cantidad del agua: Atenúan el impacto de las sequías liberando agua acumulada, y disminuyen la severidad de inundaciones como resistencia mecánica y absorbiendo parte del agua
 - La calidad del agua depende, entre otros, de la cantidad: en sequías y en avalanchas, los sedimentos en el  agua son elevados
 - Para tener agua potable, necesitamos que el caudal no tenga ni mucha no poca agua, pero tambien que no hayan sedimentos
 - Los bosques tambien ayudan a retener sedimentos, pues cuando no hay vegetación, la lluvia y el aire aportan particulas a los cuerrpos de agua

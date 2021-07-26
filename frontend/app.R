@@ -25,18 +25,10 @@ if ( Sys.info()["sysname"] == "Windows" | any(grep('azure', Sys.info()["release"
 #write.csv(data.frame(ID = 1), '1.csv' ) # /srv/shiny-server/call4code/1.csv
 
 # Load some elements
-#devtools::source_url("https://raw.githubusercontent.com/gonzalezivan90/biotablero_api/master/biotablero_fun.R")
-aws <- 'ec2-3-137-83-192.us-east-2.compute.amazonaws.com' # Prod
-# aws_port <- ':8080'
-prj_wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-
 basWWF <- ee$FeatureCollection("WWF/HydroSHEDS/v1/Basins/hybas_9")
-#land <- ee$ImageCollection("GLCF/GLS_WATER")$select('water')
 rivWWF0 <- ee$FeatureCollection("WWF/HydroSHEDS/v1/FreeFlowingRivers")
 
 ## GEE
-##chirps <- ee$ImageCollection("UCSB-CHG/CHIRPS/PENTAD");
-#trmm <- ee$ImageCollection("TRMM/3B43V7")
 chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
 temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
 tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
@@ -77,7 +69,6 @@ hcErrors <- highchart() %>% hc_chart(type = "") %>%
 
 ui <- dashboardPage(skin = 'green',
                     dashboardHeader(
-                      #title = "Integración de observaciones de la tierra para la toma de decisiones sobre biodiversidad en Colombia", 
                       title = "Forest4Water - Call4Code IBM", 
                       #title = tags$a(#href='http://rsensus.org/en/', "Decision support sytem for Colombian BON v. Beta"),
                       titleWidth = 400
@@ -85,12 +76,7 @@ ui <- dashboardPage(skin = 'green',
                     dashboardSidebar(
                       sidebarMenu(
                         
-                        # UI Panel  ---------------
-                        # exclamation-triangle leaf globe #frog dove charts 
-                        # https://getbootstrap.com/docs/3.3/components/ 
-                        # http://glyphicons.com/ 
-                        # https://fontawesome.com/icons?d=gallery
-                        
+      
                         menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
                                  menuSubItem(" -- Goal", tabName = "tab_goal", icon = icon("flag-checkered")),
                                  menuSubItem(" -- Purpouse", tabName = "tab_purp", icon = icon("lightbulb")),
@@ -98,8 +84,6 @@ ui <- dashboardPage(skin = 'green',
                                  menuSubItem(" -- Future", tabName = "tab_future", icon = icon("rocket")),
                                  menuSubItem(" -- Team", tabName = "tab_team", icon = icon("users-cog"))
                         ),
-                        
-                        #menuItem("Definir region de estudio", tabName = "draw") ,
                         
                         menuItem("Find water!", tabName = "tab_findwater", icon = icon("map-pin")),
                         menuItem("Assess water!", tabName = "tab_assess", icon = icon("poll"))
@@ -115,11 +99,12 @@ ui <- dashboardPage(skin = 'green',
         .skin-blue .main-header .logo:hover {
           background-color: #3c8dbc;
         }
+        .main-sidebar { font-size: 20px; }
       '))),
                       tabItems(
                         tabItem("tab_goal", 
                                 div(style='width:100%;',
-                                    includeMarkdown("goal2.html")
+                                    includeMarkdown("goal.html")
                                 )
                         ),
                         tabItem("tab_purp", includeMarkdown("purple.html")),
@@ -127,7 +112,7 @@ ui <- dashboardPage(skin = 'green',
                         tabItem("tab_future", includeMarkdown("future.html")),
                         tabItem("tab_team", includeMarkdown("team.html")),
                         
-
+                        
                         # UI draw pol   --------------- ^^
                         ######## UI Find water  ---------------
                         tabItem("tab_findwater",
@@ -157,15 +142,13 @@ ui <- dashboardPage(skin = 'green',
                                            column(width = 6, br(), actionButton("go_assess", "Assess"))),
                                          fluidRow(
                                            leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")
-                                          
-                                         )
-                                  ,
+                                          )
+                                  ),
                                   column(width = 6, 
                                          highchartOutput("assessPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"), 
                                          highchartOutput("assessPlot2", height = "300px")%>% withSpinner(color="#0dc5c1"), 
                                          highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1")
                                          #highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1")
-                                        )
                                   )
                                 )
                         )
@@ -333,7 +316,7 @@ server <- function(input, output, session) {
         addProviderTiles( "OpenTopoMap", group = "OpenTopoMap" )
       
       if ( Sys.info()["sysname"] == "Windows"){
-        #save(spDf, slDf, snpDf,ptsCoord, leafGee, file = 'temp.RData')
+        save(spDf, slDf, snpDf,ptsCoord, leafGee, file = 'temp.RData')
         #load('temp.RData')
       }
       leafGee 
@@ -369,70 +352,69 @@ server <- function(input, output, session) {
         
       } else {
         
-        
-        
         chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
         temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
         tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
         loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
         
+        #### TREE --- maps leaf
+        
+        tree.clip <- tree$clip(basaoi)
+        loss.clip <- loss$clip(basaoi)
+        
+        # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
+        # 
+        # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
+        # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
+        loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
+        
+        Map$centerObject(basaoi)
+        lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
+                               visParams = list(min = 0, max = 100, 
+                                                palette = c("E6EEF5", "1E5A0D"))) 
+        llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
+                               visParams = list(min = 0, max = 20, 
+                                                palette = c("B7D114", "D11439")))
+        # lltree2day <- Map$addLayer(tree.clip2day, 
+        #                        visParams = list(min = 0, max = 100, 
+        #                                         palette = c("E6EEF5", "1E5A0D"))) 
+        
+        palTree <- colorNumeric(palette = c("#E6EEF5", "#1E5A0D"), domain = c(0, 100))
+        palLoss <- colorNumeric(palette = c("#B7D114", "#D11439"), domain = 2000+c(0, 20))
+        
+        #centerObject
+        # names(lltree) # from rgee
+        # names(leafGee)
+        # lltree$rgee
+        # 
+        # class(lltree)
+        # class(leafGee)
+        # leafGee <- Reduce('+',  list(mapBas, mapRiv, mapOrig, mapDest) )
+        
+        #treegee2 <-  (leafGee + lltree[[names(leafGee)]] + llloss[[names(leafGee)]] )
+        treegee <- as(leafGee + lltree + llloss, Class = c("leaflet"))
+          
+        treegee <-  treegee %>% addLegend("bottomright", pal = palTree, values = c(0, 100), title = "Forest cover", opacity = 1) %>% 
+          addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20), title = "Def. year", opacity = 1)
         
         
-        #### TREE --- maps
-          
-          tree.clip <- tree$clip(basaoi)
-          loss.clip <- loss$clip(basaoi)
-          
-          # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
-          # 
-          # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
-          # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
-          loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
-          
-          
-          lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
-                                 visParams = list(min = 0, max = 100, 
-                                                  palette = c("E6EEF5", "1E5A0D"))) 
-          llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
-                                 visParams = list(min = 0, max = 20, 
-                                                  palette = c("B7D114", "D11439")))
-          # lltree2day <- Map$addLayer(tree.clip2day, 
-          #                        visParams = list(min = 0, max = 100, 
-          #                                         palette = c("E6EEF5", "1E5A0D"))) 
-          
-          palTree <- colorNumeric(
-            palette = c("#E6EEF5", "#1E5A0D"),
-            domain = c(0, 100)
-          )
-          palLoss <- colorNumeric(
-            palette = c("#B7D114", "#D11439"),
-            domain = 2000+c(0, 20)
-          )
-          
-          treegee <- (leafGee + lltree + llloss ) %>%
-            addLegend("bottomright", pal = palTree, values = c(0, 100),
-                      title = "Forest cover", opacity = 1
-            ) %>%
-            addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20),
-                      title = "Def. year", opacity = 1
-            )
-          
-          tempName <- basename(tempfile())
-          save(treegee, file = paste0(outDir, ''))
+        tempNameLeaf <- paste0(outDir, '/', basename(tempfile()), '.RData')
+        save(treegee, file = tempNameLeaf)
+        load(tempNameLeaf)
+        
         if ( Sys.info()["sysname"] == "Windows" 
              #| any(grep('azure', Sys.info()["release"]))
-             ){
-          # 
-          # str(treegee)
-          # 
-          # names(lltree)
-          # names(leafGee)
-          # 
-          # class(lltree)
-          # class(leafGee)
-        
+        ){
+          
+          treegee
+          
         } else {
-          treegee <- llloss # leafGee
+          Map$centerObject(basaoi)
+          tree.mask <- tree.clip$updateMask(loss.clip$gt(1))
+          lltreemask <- Map$addLayer(tree.mask, name = 'Tree cover',
+                                 visParams = list(min = 0, max = 100, 
+                                                  palette = c("E6EEF5", "1E5A0D"))) 
+          treegee <- lltreemask  # leafGee
         }
         
         
@@ -532,9 +514,7 @@ server <- function(input, output, session) {
         lossDf$prop <- lossDf$his/baskm2
         
         (lossTs <- data.frame(loss = sum(treeDf$prop[treeDf$bins>1])*100 - cumsum(c(0,lossDf$prop[-1])),
-                              yy = 2000 + lossDf$bins )
-        )
-        
+                              yy = 2000 + lossDf$bins))
         
         
         ## GEE DF --------------
@@ -590,7 +570,7 @@ server <- function(input, output, session) {
                      value =  unname(quantile(dchirps$chirps, probs = c(.2), na.rm = TRUE))),
                 list(color = "#f0260f ",
                      width = 2,
-                     value =  unname(quantile(dchirps$chirps, probs = c(0), na.rm = TRUE))),
+                     value =  unname(quantile(dchirps$chirps, probs = c(.05), na.rm = TRUE))),
                 list(color = "#f0260f ",
                      width = 2,
                      value =  unname(quantile(dchirps$chirps, probs = c(1), na.rm = TRUE)))

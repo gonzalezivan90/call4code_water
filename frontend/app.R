@@ -14,7 +14,7 @@ library(shinycssloaders)
 library(reshape2)
 library(rgee) # ee_Initialize() #ee_install()
 #remotes::install_github("r-earthengine/rgeeExtra")
-if ( Sys.info()["sysname"] == "Windows"){
+if ( Sys.info()["sysname"] == "Windows" | any(grep('azure', Sys.info()["release"]))){
   ee_Initialize(email = 'gonzalezgarzon.ivan@gmail.com') # as server
 } else {
   ee_Initialize(user = 'gonzalezgarzon.ivan@gmail.com') # as server
@@ -144,22 +144,25 @@ ui <- dashboardPage(skin = 'green',
                                 #fluidRow(h3(' ')),
                                 #h5(''),
                                 fluidRow(
-                                  column(width = 4, 
+                                  column(width = 6, 
                                          fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
                                            column(width = 6, selectInput(inputId = "in_days", 
                                                                          label = "Días previos: ", choices =  c(5, 10, 30, 60), selected = 10)),
                                            column(width = 6, br(), actionButton("go_assess", "Assess"))),
                                          fluidRow(
-                                           leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1"),
-                                           highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1")))
+                                           leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")
+                                          
+                                         )
                                   ,
                                   column(width = 6, 
                                          highchartOutput("assessPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"), 
                                          highchartOutput("assessPlot2", height = "300px")%>% withSpinner(color="#0dc5c1"), 
-                                         highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1"))
+                                         highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1")
+                                         #highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1")
+                                        )
+                                  )
                                 )
                         )
-                        
                       )
                     )
 )
@@ -367,51 +370,63 @@ server <- function(input, output, session) {
         tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
         loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
         
-        #### TREE 
-        tree.clip <- tree$clip(basaoi)
-        loss.clip <- loss$clip(basaoi)
-        
-        # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
-        # 
-        # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
-        # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
-        loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
         
         
-        lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
-                               visParams = list(min = 0, max = 100, 
-                                                palette = c("E6EEF5", "1E5A0D"))) 
-        llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
-                               visParams = list(min = 0, max = 20, 
-                                                palette = c("B7D114", "D11439")))
-        # lltree2day <- Map$addLayer(tree.clip2day, 
-        #                        visParams = list(min = 0, max = 100, 
-        #                                         palette = c("E6EEF5", "1E5A0D"))) 
-        
-        palTree <- colorNumeric(
-          palette = c("#E6EEF5", "#1E5A0D"),
-          domain = c(0, 100)
-        )
-        palLoss <- colorNumeric(
-          palette = c("#B7D114", "#D11439"),
-          domain = 2000+c(0, 20)
-        )
-        
-        treegee <- (leafGee + lltree + llloss ) %>%
-          addLegend("bottomright", pal = palTree, values = c(0, 100),
-                    title = "Forest cover", opacity = 1
-          ) %>%
-          addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20),
-                    title = "Def. year", opacity = 1
+        #### TREE --- maps
+        if ( Sys.info()["sysname"] == "Windows" 
+             #| any(grep('azure', Sys.info()["release"]))
+             ){
+          
+          tree.clip <- tree$clip(basaoi)
+          loss.clip <- loss$clip(basaoi)
+          
+          # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
+          # 
+          # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
+          # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
+          loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
+          
+          
+          lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
+                                 visParams = list(min = 0, max = 100, 
+                                                  palette = c("E6EEF5", "1E5A0D"))) 
+          llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
+                                 visParams = list(min = 0, max = 20, 
+                                                  palette = c("B7D114", "D11439")))
+          # lltree2day <- Map$addLayer(tree.clip2day, 
+          #                        visParams = list(min = 0, max = 100, 
+          #                                         palette = c("E6EEF5", "1E5A0D"))) 
+          
+          palTree <- colorNumeric(
+            palette = c("#E6EEF5", "#1E5A0D"),
+            domain = c(0, 100)
           )
-        # 
-        # str(treegee)
-        # 
-        # names(lltree)
-        # names(leafGee)
-        # 
-        # class(lltree)
-        # class(leafGee)
+          palLoss <- colorNumeric(
+            palette = c("#B7D114", "#D11439"),
+            domain = 2000+c(0, 20)
+          )
+          
+          treegee <- (leafGee + lltree + llloss ) %>%
+            addLegend("bottomright", pal = palTree, values = c(0, 100),
+                      title = "Forest cover", opacity = 1
+            ) %>%
+            addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20),
+                      title = "Def. year", opacity = 1
+            )
+          # 
+          # str(treegee)
+          # 
+          # names(lltree)
+          # names(leafGee)
+          # 
+          # class(lltree)
+          # class(leafGee)
+        
+        } else {
+          treegee <- leafGee
+        }
+        
+        
         
         
         

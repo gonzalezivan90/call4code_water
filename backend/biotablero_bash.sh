@@ -183,6 +183,7 @@ sudo 7za x -o/data /data/templates.7z
 
 ## Launch docker, but first move the the folder
 cd ~/plumber/ # here shpuld be the conifg. files
+docker swarm init
 sudo docker-compose up -d
 
 ## Populate MongoDB data base

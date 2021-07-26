@@ -6,15 +6,19 @@ library(rgeos)
 library(rgdal)
 library(raster)
 library(maptools)
-library('htmltools')
- 
+library(htmltools)
 library(shinydashboard)
 library(highcharter)
 library(devtools)
 library(shinycssloaders)
 library(reshape2)
 library(rgee) # ee_Initialize() #ee_install()
-ee_Initialize(email = 'gonzalezgarzon.ivan@gmail.com') # as server
+#remotes::install_github("r-earthengine/rgeeExtra")
+if ( Sys.info()["sysname"] == "Windows"){
+  ee_Initialize(email = 'gonzalezgarzon.ivan@gmail.com') # as server
+} else {
+  ee_Initialize(user = 'gonzalezgarzon.ivan@gmail.com') # as server
+}
 
 # setwd('C:/GoogleDrive/call4code_water/frontend')
 
@@ -30,18 +34,25 @@ basWWF <- ee$FeatureCollection("WWF/HydroSHEDS/v1/Basins/hybas_9")
 #land <- ee$ImageCollection("GLCF/GLS_WATER")$select('water')
 rivWWF0 <- ee$FeatureCollection("WWF/HydroSHEDS/v1/FreeFlowingRivers")
 
+## GEE
+##chirps <- ee$ImageCollection("UCSB-CHG/CHIRPS/PENTAD");
+#trmm <- ee$ImageCollection("TRMM/3B43V7")
+chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
+temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
+tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
+loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
+
+
+
+## Icons 
 icons1 <<- awesomeIcons(
-  icon = 'ios-close',
-  iconColor = 'black',
-  library = 'ion',
-  markerColor = c('green')
+  icon = 'ios-close',iconColor = 'black',
+  library = 'ion', markerColor = c('green')
 )
 
 icons2 <<- awesomeIcons(
-  icon = 'ios-close',
-  iconColor = 'black',
-  library = 'ion',
-  markerColor = c('red')
+  icon = 'ios-close', iconColor = 'black',
+  library = 'ion', markerColor = c('red')
 )
 
 
@@ -50,11 +61,11 @@ outDir <- ifelse( Sys.info()["sysname"] == "Linux",  '/home/shiny/tmpR/', 'C:/te
 sapply(grep(paste0(outDir, '//*.+'), list.dirs(outDir), value = TRUE), unlink, recursive = TRUE, force = TRUE)
 print(paste('WD: ', getwd()))
 isShpLoad <<- FALSE
+readyLayer <<- FALSE
 shp <<- NULL
-xls_recs <<- xls_biod <<- xls_uicn <<- data.frame(sp = c('Empty', 'Empty'))
 
 hcNULL <- highchart() %>% hc_chart(type = "pie") %>% hc_title(text = 'El resultado es 0')
-hcBIG <- highchart() %>% hc_chart(type = "pie") %>% hc_title(text = 'Área de estudio mayor al umbral permitido')
+hcNOP <- highchart() %>% hc_chart(type = "pie") %>% hc_title(text = 'Please use "Find water" tool first to select an area')
 
 hcErrors <- highchart() %>% hc_chart(type = "") %>% 
   hc_title(text = paste('<b>Error<\b>' #,  'This is a title with <i>margin</i> and <b>Strong or bold text</b>' 
@@ -74,26 +85,19 @@ ui <- dashboardPage(skin = 'green',
                     dashboardSidebar(
                       sidebarMenu(
                         
-                        
-                        # UI Panel  ---------------
-                        # exclamation-triangle leaf globe #frog dove charts 
-                        # https://getbootstrap.com/docs/3.3/components/ 
-                        # http://glyphicons.com/ 
-                        # https://fontawesome.com/icons?d=gallery
-                        
-                        menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
+                        # UI Panel  --------------- vv
+                           menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
                                  menuSubItem(" -- Goal", tabName = "tab_goal", icon = icon("flag-checkered")),
                                  menuSubItem(" -- Purpouse", tabName = "tab_purp", icon = icon("lightbulb")),
-                                 menuSubItem(" -- How it works", tabName = "tab_how", icon = icon("cogs")),
-                                 menuSubItem(" -- Future", tabName = "tab_how", icon = icon("rocket")),
-                                 menuSubItem(" -- Team", tabName = "tab_how", icon = icon("users-cog"))
-                                 ),
+                                 menuSubItem(" -- How it works", tabName = "tab_works", icon = icon("cogs")),
+                                 menuSubItem(" -- Future", tabName = "tab_future", icon = icon("rocket")),
+                                 menuSubItem(" -- Team", tabName = "tab_team", icon = icon("users-cog"))
+                        ),
                         
                         #menuItem("Definir region de estudio", tabName = "draw") ,
                         
                         menuItem("Find water!", tabName = "tab_findwater", icon = icon("map-pin")),
-                        menuItem("Assess water!", tabName = "tab_assesswater", icon = icon("poll"))
-                        
+                        menuItem("Assess water!", tabName = "tab_assess", icon = icon("poll"))
                       )
                     ),
                     
@@ -108,196 +112,54 @@ ui <- dashboardPage(skin = 'green',
         }
       '))),
                       tabItems(
-                        tabItem("intro",
-                                fluidRow(
-                                  tabBox(width = 12,
-                                         
-                                         tabPanel("Inicio",
-                                                  includeMarkdown("md_intro.md")
-                                         ),
-                                         tabPanel("Equipo",
-                                                  includeMarkdown("md_ppl.md")
-                                         ),
-                                         tabPanel("Objetivos",
-                                                  includeMarkdown("md_obj1.md")
-                                         ),
-                                         tabPanel("Hitos",
-                                                  includeMarkdown("md_obj2.md")
-                                         ),
-                                         tabPanel("Métricas",
-                                                  includeMarkdown("md_table.md")
-                                         )
-                                  )
+                        tabItem("tab_goal", 
+                                div(style='width:1400px;overflow-x: scroll;height:800px;overflow-y: scroll;',
+                                    includeMarkdown("md_goal.md")
                                 )
                         ),
-                        
-                        
-                        tabItem("tab_goal", includeMarkdown("md_goal.md")),
                         tabItem("tab_purp", includeMarkdown("md_purp.md")),
                         tabItem("tab_works", includeMarkdown("md_works.md")),
                         tabItem("tab_future", includeMarkdown("md_future.md")),
-                        tabItem("tab_team", includeMarkdown("md_team.md")),
+                        tabItem("tab_team", includeMarkdown("md_future.md")),
                         
-                      
-                        # UI draw pol   ---------------
-                        tabItem("draw",
-                                fluidRow(h3(' ')),
-                                h5(''),
-                                fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,  
-                                  column(width = 4,
-                                         
-                                         h4(HTML('<b>Cargue alguno de estos:</b>')),
-                                         h5('- ZIP con archivos de polígino ESRI Shapefile'),
-                                         h5('- Archivos ESRI Shapefile (al menos .shp, .shx, .dbf)'),
-                                         h5('- Archivo GeoJSON'),
-                                         h5('- Archivo SQLite'),
-                                         h5('- Archivo Geopackage'),
-                                         h5('El polígono debe ser de gemoetría sencilla, menor a 5.000 Km de superficie y con proyección real de WGS84 si no tiene esta información en el archivo'),
-                                         h5(''),
-                                         
-                                         shiny::fileInput('shapefile', 'Cargar polígono/AOI',buttonLabel = 'Buscar', placeholder = 'Sin selección',
-                                                          accept=c('.shp','.dbf','.sbn','.sbx','.shx',".prj", '.zip', '.gpkg', '.SQLite', '.GeoJSON'),
-                                                          #accept= '.zip',
-                                                          multiple=TRUE),
-                                         actionButton("loadShp", "Cargar!"),
-                                         br(),
-                                         h5(''),
-                                         verbatimTextOutput("voutext") %>% withSpinner(color="#0dc5c1")),
-                                  column(width = 6, leafletOutput("loadMapLL", height = "600px") %>% withSpinner(color="#0dc5c1"))
-                                )
-                        ),
-                        
-                        ######## Ecosystems
-                        # UI Ecosystems  ---------------
-                        tabItem("in_forest",
-                                fluidRow(h3(' ')),
-                                h5(''),
-                                fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                  column(width = 4, 
-                                         selectInput(inputId = "aoi_forest", label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar'),
-                                         selectInput(inputId = "forestsour", label = "Fuente: ", choices =  c('ideam', 'hansen'), selected = 'hansen')),
-                                  # selectInput(inputId = "forestvar", label = "Metric: ",
-                                  #             choices =  c('area'), selected = 'area'),
-                                  column(width = 4, sliderInput(inputId = "forestyearrng", label = 'Rango temporal',
-                                                                min = 1990, max = 2018, value=c(2000, 2018), sep = ""),
-                                         sliderInput(inputId = "forestporcrng", label = 'Porcentaje cobertura de bosque:',
-                                                     min = 0, max = 100, value=c(80, 100))),
-                                  column(width = 1, actionButton("go_forest", "Ejecutar"))
-                                ),
-                                fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                  column(width = 6, leafletOutput("leafForest", height = "600px") %>% withSpinner(color="#0dc5c1"))
-                                  , column(width = 6, highchartOutput("foresttrend", height = "600px") %>% withSpinner(color="#0dc5c1"))
-                                )
-                        ),
-                        
+                        # UI draw pol   --------------- ^^
+                        ######## UI Find water  ---------------
                         tabItem("tab_findwater",
                                 #fluidRow(h3(' ')),
                                 h5(''),
                                 fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                  column(width = 6,
+                                  column(width = 12,
                                          fluidRow(
-                                         column(width = 4, actionButton("go_find", "Find water!")),
-                                         column(width = 8, verbatimTextOutput("voutdist") %>% withSpinner(color="#0dc5c1"))
+                                           column(width = 2, actionButton("go_find", "Find water!")),
+                                           column(width = 10, verbatimTextOutput("voutdist") %>% withSpinner(color="#0dc5c1"))
                                          ),
-                                         # fluidRow(
-                                         #   column(width = 6, selectInput(inputId = "aoi_clc", 
-                                         #                                 label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
-                                         #   column(width = 4, selectInput(inputId = "clc_lev", 
-                                         #                                 label = "Nivel: ", choices =  c(1:3), selected = 1)),
-                                         # ),
                                          leafletOutput("findLeaf", height = "600px") %>% withSpinner(color="#0dc5c1")
                                          #leafletOutput("findLeaf", width = "90%", height = "90%")
-                                  ),
-                                  
-                                  column(width = 6, 
-                                         highchartOutput("clcPlot1", height = "600px")%>% withSpinner(color="#0dc5c1")
-                                         #, highchartOutput("clcPlot2", height = "600px")%>% withSpinner(color="#0dc5c1")
                                   )
                                 )
                         ),
                         
-                      
-                        ######## UI Managment -----
-                        
-                       
-                        tabItem("in_comp",
-                                fluidRow(h3(' ')),
-                                h5(''),
+                        ######## UI Assess -----
+                        tabItem("tab_assess",
+                                #fluidRow(h3(' ')),
+                                #h5(''),
                                 fluidRow(
-                                  column(width = 6, 
+                                  column(width = 4, 
                                          fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                           column(width = 8, selectInput(inputId = "aoi_comp", label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
-                                           column(width = 1, br(), actionButton("go_comp", "Ejecutar"))),
+                                           column(width = 6, selectInput(inputId = "in_days", 
+                                                                         label = "Días previos: ", choices =  c(5, 10, 30, 60), selected = 10)),
+                                           column(width = 6, br(), actionButton("go_assess", "Assess"))),
                                          fluidRow(
-                                           leafletOutput("compLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")))
+                                           leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1"),
+                                           highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1")))
                                   ,
                                   column(width = 6, 
-                                         highchartOutput("compPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"), 
-                                         highchartOutput("compPlot2", height = "300px")%>% withSpinner(color="#0dc5c1"))
+                                         highchartOutput("assessPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"), 
+                                         highchartOutput("assessPlot2", height = "300px")%>% withSpinner(color="#0dc5c1"), 
+                                         highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1"))
                                 )
-                        ),
-                        
-                        ######## UI Species -----
-                        tabItem("in_uicn",
-                                fluidRow(h3(' ')),
-                                h5(''),
-                                fluidRow(
-                                  column(width = 6, 
-                                         fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                           column(width = 6, selectInput(inputId = "aoi_uicn", label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
-                                           column(width = 3, br(), actionButton("go_uicn", "Ejecutar")),
-                                           column(width = 3, br(), downloadButton("uicn_xls", "Descargar"))
-                                         ),
-                                         fluidRow(
-                                           leafletOutput("uicnLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")))
-                                  ,
-                                  column(width = 6, dataTableOutput('tablespuicn')%>% withSpinner(color="#0dc5c1") )
-                                )
-                        ),
-                       
-                        
-                        ######## UI Indexes -----
-                        tabItem("in_sur",
-                                fluidRow(h3(' ')),
-                                h5(''),
-                                fluidRow(
-                                  column(width = 6, 
-                                         fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                           column(width = 5 , selectInput(inputId = "aoi_sur", label = "Área de estudio: ", choices =  c('Dibujar'), selected = 'Dibujar')),
-                                           column(width = 5 , selectInput(inputId = "sur_size", label = "Longitud lado pixel (Km): ", 
-                                                                          choices =  rev(
-                                                                            c(1,   2,   5, 10, 20, 50, 100, 200, 500)
-                                                                            #c(.8, 3.3, 20, 82, 331, 2070,8289 )
-                                                                            # c(1, 4, 25, 100, 400, 2500, 10000, 40000, 250000)
-                                                                          ), selected = 20)),
-                                           column(width = 2, br(), actionButton("go_sur", "Ejecutar"))
-                                         ),
-                                         fluidRow(
-                                           leafletOutput("surLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")
-                                         )
-                                         
-                                  ),
-                                  column(width = 6, 
-                                         highchartOutput("surPlot1", height = "800px") %>% withSpinner(color="#0dc5c1"))
-                                )
-                        ),
-                        tabItem("in_rli",
-                                fluidRow(h3(' ')),
-                                h5(''),
-                                column(width = 1, 
-                                       fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
-                                         column(width = 1, actionButton("go_rli", "Ejecutar"))))
-                                ,
-                                column(width = 11, 
-                                       highchartOutput("rliPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"))
                         )
-                        # ,
-                        # tabItem("in_test",
-                        #         fluidRow(h3(' ')),
-                        #         h5(''),
-                        #         highchartOutput("biomPlot1", height = "600px")%>% withSpinner(color="#0dc5c1"), 
-                        #         highchartOutput("biotPlot1", height = "600px")%>% withSpinner(color="#0dc5c1")
-                        # )
+                        
                       )
                     )
 )
@@ -305,20 +167,16 @@ ui <- dashboardPage(skin = 'green',
 
 ##### SERVER ----------------------
 server <- function(input, output, session) {
- 
+  
   ##### Default widgets ----------------------
   
-  output$foresttrend <- renderHighchart({NULL})
-  output$loadMapLL <- renderHighchart({NULL})
-  output$paramPlot1 <- renderHighchart({NULL})
-  output$paramPlot2 <- renderHighchart({NULL})
-  output$dryPlot1 <- renderHighchart({NULL})
-  output$dryPlot2 <- renderHighchart({NULL})
   
-  output$clcPlot1 <- output$clcPlot2 <- output$redPlot1 <- output$redPlot2 <- output$biotPlot1 <- output$biotPlot2 <- output$biomPlot1 <- output$biomPlot2 <- output$dryPlot1 <- output$dryPlot2 <- 
-    output$paramPlot1 <- output$paramPlot2 <- output$wetPlot1 <- output$wetPlot2 <- output$apPlot1 <- output$apPlot2 <- output$colePlot1 <- output$colePlot2 <- output$smaPlot1 <- output$smaPlot2 <- 
-    output$compPlot1 <- output$compPlot2 <- output$uicnPlot1 <- output$uicnPlot2 <- output$biodPlot1 <- output$biodPlot2 <- output$recPlot1 <- 
-    output$recPlot2 <- output$rliPlot1 <- output$rliPlot2 <- output$surPlot1 <- output$surPlot2 <- renderHighchart({NULL})
+  output$assessFor <- renderHighchart({ NULL})
+  output$assessPlot1 <- renderHighchart({ NULL})
+  output$assessPlot2 <- renderHighchart({ NULL})
+  output$assessPlot3 <- renderHighchart({ NULL})
+  output$assessPlot1 <- renderHighchart({NULL})
+  output$assessPlot2 <- renderHighchart({NULL})
   
   output$loadMapLL <- renderLeaflet({
     reactShp$leaf0
@@ -328,42 +186,43 @@ server <- function(input, output, session) {
   
   ##### Leaflets ----------------------
   
-  output$findLeaf <- output$clcLeaf <- output$redLeaf <- output$biotLeaf <- output$biomLeaf <- output$wetLeaf <- 
-    output$apLeaf <- output$coleLeaf <- 
-    output$smaLeaf <- output$compLeaf <- output$uicnLeaf <- output$biodLeaf <- output$recLeaf <- output$surLeaf <- 
-    output$dryLeaf <- output$paramLeaf <- output$leafForest <- renderLeaflet({
-      reactShp$leaf0 %>%
-        leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
-                                       rectangleOptions = FALSE, circleOptions = FALSE,
-                                       markerOptions = FALSE, circleMarkerOptions = FALSE,
-                                       editOptions = leaflet.extras::editToolbarOptions())
-      #addDrawToolbar(editOptions = editToolbarOptions())
-    })
-  
+  output$findLeaf <- output$assessLeaf <- output$leafForest <- renderLeaflet({
+    reactShp$leaf0 %>%
+      leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
+                                     rectangleOptions = FALSE, circleOptions = FALSE,
+                                     markerOptions = FALSE, circleMarkerOptions = FALSE,
+                                     editOptions = leaflet.extras::editToolbarOptions())
+    #addDrawToolbar(editOptions = editToolbarOptions())
+  })
   
   
   reactShp <- reactiveValues(shp = FALSE,
-                             leaf0 = leaflet() %>% addTiles() %>% 
-                               addLayersControl(baseGroups = c("OpenStreetMap", "Esri.WorldImagery"),
-                                                options = layersControlOptions(collapsed = FALSE)) %>%
+                             leaf0 = leaflet() %>% addTiles() %>% setView(lng = -74, lat = 4.6, zoom = 10) %>% 
+                               addLayersControl(baseGroups = c("OpenStreetMap",
+                                                               "Esri.WorldImagery",
+                                                               'CartoDB.Positron', 'CartoDB.DarkMatter',
+                                                               'OpenTopoMap'),
+                                                options = layersControlOptions(collapsed = TRUE)) %>%
                                addProviderTiles( "Esri.WorldImagery", group = "Esri.WorldImagery" ) %>%
-                               setView(lng = -74, lat = 4.6, zoom = 10)
+                               addProviderTiles( "CartoDB.Positron", group = "CartoDB.Positron" ) %>%
+                               addProviderTiles( "CartoDB.DarkMatter", group = "CartoDB.DarkMatter" ) %>%
+                               addProviderTiles( "OpenTopoMap", group = "OpenTopoMap" )
+                             
   )
   
   
   
   hc1 <<- hc2 <<- NULL 
   
-  ##### Load shp  ----------------------
   
-
+  
   output$voutdist <- renderText({isolate("Place the map and then hit the button")})
   
   
   ##### Go find water  ----------------------  
   # input <- list(forestyearrng = c(2000, 2005), forestporcrng = c(25, 100), forestsour = 'ideam')
-
   
+  ##### Reactive maps  ----------------------  
   observeEvent(input$findLeaf_click, {
     click <- input$findLeaf_click
     text<-paste("Lattitude:", round(click$lat, 2),
@@ -374,10 +233,22 @@ server <- function(input, output, session) {
       addPopups(click$lng, click$lat, text)
   })
   
+  observeEvent(input$assessLeaf_click, {
+    click <- input$assessLeaf_click
+    text<-paste("Lattitude:", round(click$lat, 2),
+                "<br>Longtitude:", round(click$lng, 4),
+                "<br>Date:", Sys.Date())
+    proxy <- leafletProxy("assessLeaf")
+    proxy %>% clearPopups() %>%
+      addPopups(click$lng, click$lat, text)
+  })
+  
+  
+  ##### Go find water  ----------------------  
   isolate(observeEvent(input$go_find,{
-    readyLayer <- FALSE
+    
     #polDraw <- input$leafForest_draw_new_feature
-    output$findLeaf <- renderLeaflet({
+    isolate(output$findLeaf <- isolate(renderLeaflet({
       
       inClick <- input$findLeaf_click
       #print(str(inClick))
@@ -385,10 +256,10 @@ server <- function(input, output, session) {
       ptsCoord <<- c(lon = inClick$lng, lat = inClick$lat)
       aoiPoint <<- ee$Geometry$Point(ptsCoord);
       basaoi <<- basWWF$filterBounds(aoiPoint);
-
+      
       
       rivWWF <<- rivWWF0$filterBounds(basaoi);
-
+      
       system.time(rivWWF_gi <- rivWWF$getInfo())
       
       
@@ -408,62 +279,339 @@ server <- function(input, output, session) {
       snpDf <<- snapPointsToLines(SpatialPoints(cbind(ptsCoord[1], ptsCoord[2])), slDf)
       
       dstPoint <<- ee$FeatureCollection(ee$Feature(ee$Geometry$Point(snpDf@coords[1, 1:2, drop = TRUE])));
- 
+      
       system.time(basaoi_gi <- basaoi$getInfo())
-      spDf <- SpatialPolygonsDataFrame(
-            SpatialPolygons(
-                     list(
-                       Polygons(list(Polygon(matrix(unlist(
-                         basaoi_gi$features[[1]]$geometry$coordinates[[1]]
-                         ), ncol = 2, byrow = TRUE))), 1) # polgons
-                     )), data = data.frame(ID = 1), match.ID = FALSE)
+      spDf <<- SpatialPolygonsDataFrame(
+        SpatialPolygons(
+          list(
+            Polygons(list(Polygon(matrix(unlist(
+              basaoi_gi$features[[1]]$geometry$coordinates[[1]]
+            ), ncol = 2, byrow = TRUE))), 1) # polgons
+          )), data = data.frame(ID = 1), match.ID = FALSE)
       
       
-      leafGee <- leaflet() %>% leaflet() %>% addTiles() %>% 
+      leafGee <<- leaflet() %>% leaflet() %>% addTiles() %>% 
         #setView(lng = inClick$lng, lat = inClick$lat, zoom = 10 ) %>%
         addPolygons(data = spDf, popup = paste0("Basin"),
                     group = "Basin", fillOpacity = .2,
                     color = 'grey60') %>%
         addPolylines(data = slDf,
-                    label = ~htmlEscape('Rivers'),
-                    popup = paste0("Rivers"),
-                    group = "Rivers",
-                    fillOpacity = .9,
-                    color = '#3181BF') %>%
+                     label = ~htmlEscape('Rivers'),
+                     popup = paste0("Rivers"),
+                     group = "Rivers",
+                     fillOpacity = .9,
+                     color = '#3181BF') %>%
         
         addAwesomeMarkers(data = data.frame(t(ptsCoord)), icon = icons2, 
-                   lng = ~lon, lat = ~lat, group = 'Origin',
-                   label = ~htmlEscape('Origin'),
+                          lng = ~lon, lat = ~lat, group = 'Origin',
+                          label = ~htmlEscape('Origin'),
         ) %>% 
         addAwesomeMarkers(data = snpDf, icon = icons1,
-                   group = 'Destination', label = ~htmlEscape('Destination'),
+                          group = 'Destination', label = ~htmlEscape('Destination'),
         ) %>% addLegend("bottomright", 
-                              colors = c("#9099A0", "#3181BF", "#FF0000", "#006600"),
-                              labels= c('Basin', 'Rivers', 'Source', 'Destination'), 
-                              title = "Legend") %>%
+                        colors = c("#9099A0", "#3181BF", "#FF0000", "#006600"),
+                        labels= c('Basin', 'Rivers', 'Source', 'Destination'), 
+                        title = "Legend") %>%
         addLayersControl(overlayGroups = c('Basin', 'Rivers', 'Origin', 'Destination'), 
                          baseGroups = c("OpenStreetMap",
                                         "Esri.WorldImagery",
                                         'CartoDB.Positron', 'CartoDB.DarkMatter',
                                         'OpenTopoMap'),
-                         options = layersControlOptions(collapsed = FALSE)) %>%
+                         options = layersControlOptions(collapsed = TRUE)) %>%
         addProviderTiles( "Esri.WorldImagery", group = "Esri.WorldImagery" ) %>%
         addProviderTiles( "CartoDB.Positron", group = "CartoDB.Positron" ) %>%
         addProviderTiles( "CartoDB.DarkMatter", group = "CartoDB.DarkMatter" ) %>%
         addProviderTiles( "OpenTopoMap", group = "OpenTopoMap" )
-        
+      
+      if ( Sys.info()["sysname"] == "Windows"){
+        #save(spDf, slDf, snpDf,ptsCoord, leafGee, file = 'temp.RData')
+        #load('temp.RData')
+      }
       leafGee 
-
-    })
+      
+    })))
     
-      output$voutdist <- renderText({
+    isolate(output$assessLeaf <- isolate(renderLeaflet({leafGee})))
+    
+    isolate(output$voutdist <- isolate(renderText({
       ## Return text
-        paste0("Go to: \n-Lng: ", snpDf@coords[1,1], 
-               '\n-Lat: ', snpDf@coords[1,2], 
-               "\nDistance to walk: ",
-          round(pointDistance(snpDf, ptsCoord, lonlat = TRUE, allpairs=FALSE),2), 
-          ' meters')
-      })
+      paste0("Go to Lng: ", snpDf@coords[1,1], 
+             ', Lat: ', snpDf@coords[1,2], 
+             ", Distance to walk: ",
+             round(pointDistance(snpDf, ptsCoord, lonlat = TRUE, allpairs=FALSE),2), 
+             ' meters')
+    })))
+    
+    readyLayer <<- TRUE
+  }))
+  
+  ##### Go assess water  ----------------------  
+  isolate(observeEvent(input$go_assess,{
+    print('ReadyLayer')
+    print(readyLayer)
+    isolate(output$assessLeaf <- isolate(renderLeaflet({
+      
+      if(!readyLayer ){
+        output$assessPlot1 <- renderHighchart({
+          hcNOP
+        })
+        
+        reactShp$leaf0
+        
+      } else {
+        
+        
+        
+        chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
+        temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
+        tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
+        loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
+        
+        #### TREE 
+        tree.clip <- tree$clip(basaoi)
+        loss.clip <- loss$clip(basaoi)
+        
+        # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
+        # 
+        # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
+        # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
+        loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
+        
+        
+        lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
+                               visParams = list(min = 0, max = 100, 
+                                                palette = c("E6EEF5", "1E5A0D"))) 
+        llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
+                               visParams = list(min = 0, max = 20, 
+                                                palette = c("B7D114", "D11439")))
+        # lltree2day <- Map$addLayer(tree.clip2day, 
+        #                        visParams = list(min = 0, max = 100, 
+        #                                         palette = c("E6EEF5", "1E5A0D"))) 
+        
+        palTree <- colorNumeric(
+          palette = c("#E6EEF5", "#1E5A0D"),
+          domain = c(0, 100)
+        )
+        palLoss <- colorNumeric(
+          palette = c("#B7D114", "#D11439"),
+          domain = 2000+c(0, 20)
+        )
+        
+        treegee <- (leafGee + lltree + llloss ) %>%
+          addLegend("bottomright", pal = palTree, values = c(0, 100),
+                    title = "Forest cover", opacity = 1
+          ) %>%
+          addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20),
+                    title = "Def. year", opacity = 1
+          )
+        # 
+        # str(treegee)
+        # 
+        # names(lltree)
+        # names(leafGee)
+        # 
+        # class(lltree)
+        # class(leafGee)
+        
+        
+        
+        
+        stat.i <- data.frame(today = Sys.Date(), end = Sys.Date())
+        # input <- list(in_days = 60)
+        #print(str(input$in_days))
+        stat.i$start <- Sys.Date() - 30 - as.numeric(input$in_days)
+        stat.i$start_s <- as.character(stat.i$start)
+        stat.i$end_s <- as.character(stat.i$end)
+        
+        
+        ####### CHIRPS ###### SUM ------
+        
+        # basaoi
+        #print('Chirps:')
+        #print(class(chirps))
+        chirps.i <- chirps$filterDate(stat.i$start_s, stat.i$end_s)
+        #print('a')
+        chirps.red <- chirps.i$map(function(imag, red, sc, bn) {
+          # imag <- chirps.i$first()
+          val0 <- imag$reduceRegion(reducer = ee$Reducer$sum() ,
+                                    geometry = basaoi, scale = 5500)$get('precipitation')
+          val <- ee$Algorithms$If(val0, val0, ee$Number(-9999))
+          #val$getInfo()
+          xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$ 
+            set("precipitation", val)$set("system:index", imag$get("system:index"))
+          return(xy )
+        })
+        
+        (x1 <- chirps.red$aggregate_array('precipitation')) ; #
+        system.time(i.ppt <- x1$getInfo())
+        (x2 <- chirps.red$aggregate_array('system:index')) ; 
+        system.time(i.dates <- x2$getInfo())
+        
+        # chirps.n <- chirps.i$first()$reduceRegion(reducer = ee$Reducer$count() ,
+        #                                geometry = bas.g, scale = 5500)
+        
+        
+        #### TEMP ###### MEAN
+        
+        temp.i <- temp$filterDate(stat.i$start_s, stat.i$end_s)
+        temp.red <- temp.i$map(function(imag, red, sc, bn) {
+          # imag <- temp.i$first()
+          val <- imag$select('LST_Day_1km')$reduceRegion(reducer = ee$Reducer$mean() ,
+                                                         geometry = basaoi, scale = 1000)$get('LST_Day_1km')
+          val <- ee$Algorithms$If(val, val, ee$Number(-9999))
+          xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$
+            set("LST_Day_1km", val)$set("system:index", imag$get("system:index"))
+          return(xy )
+        })
+        
+        (x1 <- temp.red$aggregate_array('LST_Day_1km')) ; #
+        system.time(i.temp <- x1$getInfo())
+        (x2 <- temp.red$aggregate_array('system:index')) ;
+        system.time(i.temp.dates <- x2$getInfo())
+        
+        
+        
+        
+        
+        
+        ## GEE TS --------------
+        tree.i <- tree$reduceRegion(
+          reducer = ee$Reducer$histogram(maxBuckets =  10),
+          geometry = basaoi,
+          scale = 30)
+        
+        system.time(hist.tree <- tree.i$getInfo()) # faster than in cliping image
+        
+        #str(hist.tree$treecover2000$bucketMeans)
+        #str(hist.tree$treecover2000)
+        
+        #### LOSS
+        loss.i <- loss$reduceRegion(
+          reducer = ee$Reducer$histogram(maxBuckets =  30),
+          geometry = basaoi,
+          scale = 30)
+        
+        hist.loss <- loss.i$getInfo()
+        #str(hist.loss)
+        
+        
+        baskm2 <- raster::area(spDf)/1000000
+        treeDf <- data.frame(bins = hist.tree$treecover2000$bucketMeans,
+                             his = hist.tree$treecover2000$histogram)
+        treeDf$km2 <- treeDf$his/sum(treeDf$his)*baskm2
+        treeDf$prop <- treeDf$km2/baskm2 # sum(treeDf$prop)
+        
+        lossDf <- data.frame(bins = unlist(hist.loss$lossyear$bucketMeans),
+                             his = unlist(hist.loss$lossyear$histogram))
+        
+        lossDf$km2 <- lossDf$his/sum(lossDf$his)*baskm2
+        lossDf$prop <- lossDf$his/baskm2
+        
+        (lossTs <- data.frame(loss = sum(treeDf$prop[treeDf$bins>1])*100 - cumsum(c(0,lossDf$prop[-1])),
+                              yy = 2000 + lossDf$bins )
+        )
+        
+        
+        
+        ## GEE DF --------------
+        
+        # ## Chirps
+        dchirps <- cbind.data.frame(ymd = unlist(i.dates), chirps = unlist(i.ppt))
+        dchirps$chirps[dchirps$chirps == -9999] <- NA
+        dchirps$ymd <- as.Date(dchirps$ymd, format = '%Y%m%d')
+        dchirps$ym <- substr(0, 7, x = dchirps$ymd)
+        
+        
+        dtemp <- data.frame(ymd = unlist(i.temp.dates), tmp = (unlist(i.temp) * 0.02) - 273.15)
+        dtemp$tmp[which(dtemp == -999)] <- NA
+        dtemp$ymd <- as.Date(dtemp$ymd, format = '%Y_%m_%d')
+        dtemp$ym <- substr(0, 7, x = dtemp$ymd)
+        
+        
+        ## TS  plots --------------
+        
+        output$assessFor <- renderHighchart({ 
+          hcF <<- highchart() %>% hc_add_series(name = 'Area in forest (%)',
+                                                type = "line",
+                                                color = 'green',
+                                                mapping = hcaes(x = yy, y = loss),
+                                                data = lossTs) %>%
+            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+            hc_xAxis(title = list(text = paste('Year'))) %>%
+            hc_exporting(enabled = TRUE)
+          
+          
+        })
+        
+        #rain
+        output$assessPlot1 <- renderHighchart({ 
+          hc1 <<- highchart() %>% hc_add_series(name = 'mm/day',
+                                                type = "line",
+                                                color = 'blue',
+                                                mapping = hcaes(x = ymd, y = chirps),
+                                                data = dchirps) %>%
+            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+            hc_xAxis(title = list(text = paste('Year')),
+                     labels = list(format = '{value:%Y-%m-%d}')) %>%
+            hc_exporting(enabled = TRUE) %>% hc_yAxis(
+              plotLines = list(
+                list(color = "#074632",
+                     width = 2,
+                     value = mean(dchirps$chirps, na.rm = TRUE)), 
+                list(color = "#fb6703",
+                     width = 2,
+                     value =  unname(quantile(dchirps$chirps, probs = c(.8), na.rm = TRUE))),
+                list(color = "#fb6703",
+                     width = 2,
+                     value =  unname(quantile(dchirps$chirps, probs = c(.2), na.rm = TRUE))),
+                list(color = "#f0260f ",
+                     width = 2,
+                     value =  unname(quantile(dchirps$chirps, probs = c(0), na.rm = TRUE))),
+                list(color = "#f0260f ",
+                     width = 2,
+                     value =  unname(quantile(dchirps$chirps, probs = c(1), na.rm = TRUE)))
+              )
+            )
+        })
+        
+        
+        output$assessPlot2 <- renderHighchart({ 
+          dtemp$tmp_2 <- round(dtemp$tmp, 2)
+          hc2 <<- highchart() %>% hc_add_series(name = '°C',
+                                                type = "line",
+                                                color = 'orange',
+                                                mapping = hcaes(x = ymd, y = tmp_2),
+                                                data = dtemp) %>%
+            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+            hc_xAxis(title = list(text = paste('Year')),
+                     labels = list(format = '{value:%Y-%m-%d}')) %>%
+            hc_exporting(enabled = TRUE) %>% hc_yAxis(
+              plotLines = list(
+                list(color = "#074632",
+                     width = 2,
+                     value = mean(dtemp$tmp_2, na.rm = TRUE)), 
+                list(color = "#fb6703",
+                     width = 2,
+                     value =  unname(quantile(dtemp$tmp_2, probs = c(.8), na.rm = TRUE))),
+                list(color = "#fb6703",
+                     width = 2,
+                     value =  unname(quantile(dtemp$tmp_2, probs = c(.2), na.rm = TRUE))),
+                list(color = "#f0260f ",
+                     width = 2,
+                     value =  unname(quantile(dtemp$tmp_2, probs = c(0), na.rm = TRUE))),
+                list(color = "#f0260f ",
+                     width = 2,
+                     value =  unname(quantile(dtemp$tmp_2, probs = c(1), na.rm = TRUE)))
+              )
+            )
+          
+          hc2
+        })
+        
+        treegee
+      } # close if
+      
+    })))
     
   }))
   

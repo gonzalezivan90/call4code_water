@@ -1,0 +1,458 @@
+{
+  "intents": [
+    {
+      "intent": "autores",
+      "examples": [
+        {
+          "text": "¿cuales son los autores de el proyecto?"
+        },
+        {
+          "text": "¿cuantos integrantes son?"
+        },
+        {
+          "text": "¿quienes son los creadores?"
+        },
+        {
+          "text": "¿quienes son sus padres?"
+        },
+        {
+          "text": "¿quien te creo?"
+        }
+      ],
+      "description": "Autores de Forest4Water"
+    },
+    {
+      "intent": "contacto",
+      "examples": [
+        {
+          "text": "¿A dónde los puedo contactar?"
+        },
+        {
+          "text": "¿A dónde se encuentra Forest4Water?"
+        },
+        {
+          "text": "¿En dónde los contacto?"
+        },
+        {
+          "text": "Me pasan su contacto por favor"
+        },
+        {
+          "text": "quiero informes"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "intent": "despedida",
+      "examples": [
+        {
+          "text": "adios"
+        },
+        {
+          "text": "bye"
+        },
+        {
+          "text": "good bye"
+        },
+        {
+          "text": "Gracias"
+        },
+        {
+          "text": "hasta luego"
+        },
+        {
+          "text": "hasta nunca"
+        },
+        {
+          "text": "hasta pronto"
+        },
+        {
+          "text": "luego nos vemos"
+        },
+        {
+          "text": "muchas gracias"
+        },
+        {
+          "text": "nos vemos"
+        },
+        {
+          "text": "ok"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "intent": "funcionamiento",
+      "examples": [
+        {
+          "text": "¿cómo actúa?"
+        },
+        {
+          "text": "¿cómo funciona?"
+        },
+        {
+          "text": "¿qué es lo que hace?"
+        },
+        {
+          "text": "¿Qué hace?"
+        }
+      ],
+      "description": "how it works (como funciona)"
+    },
+    {
+      "intent": "futuro",
+      "examples": [
+        {
+          "text": "¿Cómo lo van a mejorar?"
+        },
+        {
+          "text": "¿cuales son sus objetivos para el futuro?"
+        },
+        {
+          "text": "¿cuales son sus planes para el futuro?"
+        },
+        {
+          "text": "¿cual es su futuro?"
+        }
+      ],
+      "description": "Future(futuro)"
+    },
+    {
+      "intent": "meta",
+      "examples": [
+        {
+          "text": "¿Cual es su meta?"
+        }
+      ],
+      "description": "La meta de forest4water"
+    },
+    {
+      "intent": "proposito",
+      "examples": [
+        {
+          "text": "¿cuál es su deseo?"
+        },
+        {
+          "text": "¿cuál es su determinación?"
+        },
+        {
+          "text": "¿cuál es su intención?"
+        },
+        {
+          "text": "¿cuál es su propósito?"
+        },
+        {
+          "text": "¿cuál es su voluntad?"
+        }
+      ],
+      "description": "Proposito de forest4water"
+    },
+    {
+      "intent": "saludo",
+      "examples": [
+        {
+          "text": "Buenas noches"
+        },
+        {
+          "text": "Buenas tardes"
+        },
+        {
+          "text": "Buen Dia"
+        },
+        {
+          "text": "Buenos dias"
+        },
+        {
+          "text": "Hola"
+        },
+        {
+          "text": "Muy buenas noches"
+        },
+        {
+          "text": "Muy buenas tardes"
+        },
+        {
+          "text": "Muy buenos dias"
+        },
+        {
+          "text": "Que onda"
+        },
+        {
+          "text": "que show"
+        },
+        {
+          "text": "Que tal"
+        },
+        {
+          "text": "saludos"
+        }
+      ],
+      "description": ""
+    }
+  ],
+  "entities": [
+    {
+      "entity": "lugar",
+      "values": [
+        {
+          "type": "synonyms",
+          "value": "Restaurante Caleb 1",
+          "synonyms": [
+            "1",
+            "Caleb 1",
+            "Restaurante 1",
+            "Restaurante uno"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "Restaurante Caleb 2",
+          "synonyms": [
+            "2",
+            "Caleb 2",
+            "Restaurante 2",
+            "Restaurante dos"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "Restaurante Caleb 3",
+          "synonyms": [
+            "3",
+            "Caleb 3",
+            "Restaurante 3",
+            "Restaurante tres"
+          ]
+        }
+      ],
+      "fuzzy_match": true
+    },
+    {
+      "entity": "sys-date",
+      "values": [],
+      "fuzzy_match": true
+    },
+    {
+      "entity": "sys-time",
+      "values": [],
+      "fuzzy_match": true
+    }
+  ],
+  "metadata": {
+    "api_version": {
+      "major_version": "v2",
+      "minor_version": "2018-11-08"
+    },
+    "from-sample": true
+  },
+  "webhooks": [
+    {
+      "url": "",
+      "name": "main_webhook",
+      "headers": []
+    }
+  ],
+  "dialog_nodes": [
+    {
+      "type": "standard",
+      "title": "Bienvenido",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Bienvenido al asistente Forest4Water, ¿en qué le puedo ayudar?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "welcome",
+      "dialog_node": "Bienvenido"
+    },
+    {
+      "type": "standard",
+      "title": "En otras cosas",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "No le he entendido. Intente reformular la consulta."
+              },
+              {
+                "text": "¿Puede expresarse con otras palabras? No le he entendido."
+              },
+              {
+                "text": "No entendí el significado."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "conditions": "anything_else",
+      "dialog_node": "En otras cosas",
+      "previous_sibling": "node_5_1622343429787",
+      "disambiguation_opt_out": true
+    },
+    {
+      "type": "standard",
+      "title": "Funcionamiento",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Visita https://youtu.be/W7hQMS3zCT0"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#funcionamiento",
+      "dialog_node": "node_10_1627284178752",
+      "previous_sibling": "node_3_1622342829801"
+    },
+    {
+      "type": "standard",
+      "title": "Próposito",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Resaltar importancia de conservación y restauración de bosques para combatir cambio climático, y reducir impactos de lluvias extremas (altas y bajas), así proteger la biodiversidad  y sus servicios ecosistémicos.\nAyudar a usuarios(personas, empresas) a identificar la localización más cercana.\nSoportar toma de decisiones de conservación y soluciones basadas en la naturaleza a través de datos históricos y espaciales.\nProporcionar información sobre zonas en donde se encuentra agua que podamos utilizar."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#proposito",
+      "dialog_node": "node_2_1627280313962",
+      "previous_sibling": "node_7_1627280096266"
+    },
+    {
+      "type": "standard",
+      "title": "Saludo",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Muy Buenas, ¿en que te puedo ayudar?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#saludo",
+      "dialog_node": "node_3_1622342829801",
+      "previous_sibling": "Bienvenido"
+    },
+    {
+      "type": "standard",
+      "title": "Despedida",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Hasta luego, cualquier cosa aquí andamos."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#despedida",
+      "dialog_node": "node_5_1622343429787",
+      "previous_sibling": "node_9_1627281862821"
+    },
+    {
+      "type": "standard",
+      "title": "Meta",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Proveer a los usuarios información relativa de la   localización, cantidad, y calidad del agua en mi áreas de interés, a la vez que se analiza las condiciones históricas climáticas y de bosques para orientar a la toma de decisiones."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#meta",
+      "dialog_node": "node_7_1627280096266",
+      "previous_sibling": "node_10_1627284178752"
+    },
+    {
+      "type": "standard",
+      "title": "Solicitar Contacto",
+      "output": {
+        "generic": [
+          {
+            "values": [],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "#contacto",
+      "dialog_node": "node_8_1622340384425",
+      "previous_sibling": "node_2_1627280313962"
+    },
+    {
+      "type": "standard",
+      "title": "Autores",
+      "output": {
+        "generic": [
+          {
+            "title": "Autores",
+            "source": "https://i.imgur.com/TMvfN5w.png",
+            "description": "",
+            "response_type": "image"
+          }
+        ]
+      },
+      "conditions": "#autores",
+      "digress_in": "does_not_return",
+      "dialog_node": "node_9_1627281862821",
+      "previous_sibling": "node_8_1622340384425"
+    }
+  ],
+  "counterexamples": [],
+  "system_settings": {
+    "disambiguation": {
+      "prompt": "Querías decir:",
+      "enabled": true,
+      "randomize": true,
+      "max_suggestions": 5,
+      "suggestion_text_policy": "title",
+      "none_of_the_above_prompt": "Ninguna de las anteriores"
+    },
+    "system_entities": {
+      "enabled": true
+    },
+    "human_agent_assist": {
+      "prompt": "Querías decir:"
+    }
+  },
+  "learning_opt_out": false,
+  "name": "Asistente guiado",
+  "language": "es",
+  "description": ""
+}

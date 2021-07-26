@@ -153,7 +153,7 @@ ui <- dashboardPage(skin = 'green',
                                   column(width = 6, 
                                          fluidRow(#width = 6, status = "info", solidHeader = TRUE, title = "Title", height = 500,
                                            column(width = 6, selectInput(inputId = "in_days", 
-                                                                         label = "Días previos: ", choices =  c(5, 10, 30, 60), selected = 10)),
+                                                                         label = "Días previos: ", choices =  c(30, 60, 90, 120), selected = 60)),
                                            column(width = 6, br(), actionButton("go_assess", "Assess"))),
                                          fluidRow(
                                            leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")

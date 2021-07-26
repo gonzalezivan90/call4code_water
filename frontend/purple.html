@@ -1,20 +1,10 @@
 
-<html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-</head>
+<html>
 <style>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-body {
-    font-family: 'open sans';
 }
 
 .contenedor {
@@ -23,54 +13,6 @@ body {
     max-width: 1000px;
     margin: auto;
     overflow: hidden;
-}
-
-.titulo {
-    color: #642a73;
-    font-size: 30px;
-    text-align: center;
-    margin-bottom: 60px;
-}
-
-/* About us */
-
-main .sobre-nosotros{
-    padding: 30px 0 60px 0;
-}
-.contenedor-sobre-nosotros{
-    display: flex;
-    justify-content: space-evenly;
-}
-
-.imagen-about-us{
-    width: 48%;
-}
-
-.sobre-nosotros .contenido-textos{
-    width: 48%;
-}
-
-.contenido-textos h3{
-    margin-bottom: 15px;
-}
-
-.contenido-textos h3 span{
-    background: #4d0686;
-    color: #fff;
-    border-radius: 50%;
-    display: inline-block;
-    text-align: center;
-    width: 30px;
-    height: 30px;
-    padding: 2px;
-    box-shadow: 0 0 6px 0 rgba(0, 0, 0, .5);
-    margin-right: 5px;
-}
-
-.contenido-textos p{
-    padding: 0px 0px 30px 15px;
-    font-weight: 300;
-    text-align: justify;
 }
 
 /* Galeria */
@@ -92,7 +34,7 @@ main .sobre-nosotros{
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    box-shadow: 0 0 6px 0 rgba(0, 0, 0, .5);
+    box-shadow: 0 0 6px 0 rgba(42, 212, 51, 0.678);
 }
 
 .imagen-port > img{
@@ -121,7 +63,7 @@ main .sobre-nosotros{
     height: 100%;
     top: 0;
     transform: scale(0);
-    background: hsla(123,91%,67%, 0.7);
+    background: hsla(123,91%,57%, 0.7);
     transition: transform .5s;
     display: flex;
     justify-content: center;
@@ -134,31 +76,13 @@ main .sobre-nosotros{
 }
 
 .hover-galeria p{
-    color: #fff;
+    color: rgba(42, 212, 51, 0.678);
 }
 
 .imagen-port:hover .hover-galeria{
     transform: scale(1);
 }
 
-
-/* footer */
-
-footer{
-    background: #414141;
-    padding: 60px 0 30px 0;
-    margin: auto;
-    overflow: hidden;
-}
-
-.contenedor-footer{
-    display: flex;
-    width: 90%;
-    justify-content: space-evenly;
-    margin: auto;
-    padding-bottom: 50px;
-    border-bottom: 1px solid #ccc;
-}
 
 .content-foo{
     text-align: center;
@@ -175,27 +99,9 @@ footer{
     color: #ccc;
 }
 
-.titulo-final{
-    text-align: center;
-    font-size: 24px;
-    margin: 20px 0 0 0;
-    color: #9e9797;
-}
 
 @media screen and (max-width:900px){
-    header{
-        background-position: center;
-    }
 
-    .contenedor-sobre-nosotros{
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .sobre-nosotros .contenido-textos{
-        width: 90%;
-    }
 
     .imagen-about-us{
         width: 90%;
@@ -207,21 +113,6 @@ footer{
         width: 44%;
     }
 
-    /* Clientes */
-
-    .cards{
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .cards .card{
-        width: 90%;
-    }
-
-    .cards .card:first-child{
-        margin-bottom: 30px;
-    }
 
     /* servicios */
 
@@ -245,22 +136,6 @@ footer{
 }
 
 @media screen and (max-width:500px){
-    nav{
-        text-align: center;
-        padding: 30px 0 0 0;
-    }
-
-    nav > a{
-        margin-right: 5px;
-    }
-
-    .textos-header h1{
-        font-size: 35px;
-    }
-
-    .textos-header h2{
-        font-size: 20px;
-    }
 
     /* ABOUT US */
 
@@ -281,104 +156,80 @@ footer{
 
     /* Clients */
 
-    .cards .card{
-        height: 450px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    .conteima {
+    width: 96%;
+    max-width: 1280px;
+    margin: 0 auto;
     }
-
-    .cards .card img{
-        width: 90px;
-        height: 90px;
-    }
-
-    /* Footer */
-
-    .contenedor-footer{
-        flex-direction: column;
-        border: none;
-    }
-
-    .content-foo{
-        margin-bottom: 20px;
-        text-align: center;
-    }
-
-    .content-foo h4{
-        border: none;
-    }
-
-    .content-foo p{
-        color: #ccc;
-        border-bottom: 1px solid #f2f2f2;
-        padding-bottom: 20px;
-    }
-
-    .titulo-final{
-        font-size: 20px;
+    img {
+    width: 100%;
+    height: auto;
     }
 }
 </style>
 <body>
     <main>
+        <section class="contenedor-footer">
+            <div class="conteima">
+                <img src="img/proposito.png" style="float:center" width="1020" height="780"  alt="" >
+            </div>
+        </section>
         <section class="portafolio">
             <div class="contenedor">
-                <h1 class="titulo">Portafolio</h1>
-                <h2 class="titulo">Beneficio</h2>
+            <h1><b>Beneficios de la conservación de los Bosques</b></h1>
                 <div class="galeria-port">
                     <div class="imagen-port">
-                        <img src="img/Captura.png" alt="">
+                         <img src="img/paneles/manantial.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Calidad de Agua</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/Captura.png" alt="">
+                        <img src="img/paneles/inundacion.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Cantidad de Agua</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/Captura.png" alt="">
+                        <img src="img/paneles/desierto.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Temperatura</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/img1.jpg" alt="">
+                        <img src="img/paneles/sedimentado.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Retención de Sedimentos</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/img4.jpg" alt="">
+                        <img src="img/paneles/co.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Captura de Carbono</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/img5.jpg" alt="">
+                        <img src="img/paneles/jaguar.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Habitat de Especies</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/img6.jpg" alt="">
+                        <img src="img/paneles/atmosfera.jpg" alt="">
                         <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Mitigación Cambio Climatico</p>
                         </div>
                     </div>
                     <div class="imagen-port">
-                        <img src="img/img7.jpg" alt="">
-                        <div class="hover-new">
+                        <img src="img/paneles/cientifico.jpg" alt="">
+                        <div class="hover-galeria">
                             <img src="img/icono1.png" alt="">
                             <p>Ciencia e Investigación</p>
                         </div>

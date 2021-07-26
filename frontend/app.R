@@ -85,8 +85,13 @@ ui <- dashboardPage(skin = 'green',
                     dashboardSidebar(
                       sidebarMenu(
                         
-                        # UI Panel  --------------- vv
-                           menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
+                        # UI Panel  ---------------
+                        # exclamation-triangle leaf globe #frog dove charts 
+                        # https://getbootstrap.com/docs/3.3/components/ 
+                        # http://glyphicons.com/ 
+                        # https://fontawesome.com/icons?d=gallery
+                        
+                        menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
                                  menuSubItem(" -- Goal", tabName = "tab_goal", icon = icon("flag-checkered")),
                                  menuSubItem(" -- Purpouse", tabName = "tab_purp", icon = icon("lightbulb")),
                                  menuSubItem(" -- How it works", tabName = "tab_works", icon = icon("cogs")),
@@ -113,15 +118,16 @@ ui <- dashboardPage(skin = 'green',
       '))),
                       tabItems(
                         tabItem("tab_goal", 
-                                div(style='width:1400px;overflow-x: scroll;height:800px;overflow-y: scroll;',
-                                    includeMarkdown("md_goal.md")
+                                div(style='width:100%;',
+                                    includeMarkdown("goal2.html")
                                 )
                         ),
-                        tabItem("tab_purp", includeMarkdown("md_purp.md")),
-                        tabItem("tab_works", includeMarkdown("md_works.md")),
-                        tabItem("tab_future", includeMarkdown("md_future.md")),
-                        tabItem("tab_team", includeMarkdown("md_future.md")),
+                        tabItem("tab_purp", includeMarkdown("purple.html")),
+                        tabItem("tab_works", includeMarkdown("works.html")),
+                        tabItem("tab_future", includeMarkdown("future.html")),
+                        tabItem("tab_team", includeMarkdown("team.html")),
                         
+
                         # UI draw pol   --------------- ^^
                         ######## UI Find water  ---------------
                         tabItem("tab_findwater",

@@ -259,7 +259,7 @@ server <- function(input, output, session) {
     #polDraw <- input$leafForest_draw_new_feature
     isolate(output$findLeaf <- isolate(renderLeaflet({
       
-      inClick <- input$findLeaf_click
+      isolate(inClick <- isolate(input$findLeaf_click))
       #print(str(inClick))
       
       ptsCoord <<- c(lon = inClick$lng, lat = inClick$lat)
@@ -379,9 +379,6 @@ server <- function(input, output, session) {
         
         
         #### TREE --- maps
-        if ( Sys.info()["sysname"] == "Windows" 
-             #| any(grep('azure', Sys.info()["release"]))
-             ){
           
           tree.clip <- tree$clip(basaoi)
           loss.clip <- loss$clip(basaoi)
@@ -412,6 +409,9 @@ server <- function(input, output, session) {
             domain = 2000+c(0, 20)
           )
           
+        if ( Sys.info()["sysname"] == "Windows" 
+             #| any(grep('azure', Sys.info()["release"]))
+             ){
           treegee <- (leafGee + lltree + llloss ) %>%
             addLegend("bottomright", pal = palTree, values = c(0, 100),
                       title = "Forest cover", opacity = 1
@@ -429,7 +429,7 @@ server <- function(input, output, session) {
           # class(leafGee)
         
         } else {
-          treegee <- leafGee
+          treegee <- llloss # leafGee
         }
         
         
@@ -614,12 +614,6 @@ server <- function(input, output, session) {
                 list(color = "#fb6703",
                      width = 2,
                      value =  unname(quantile(dtemp$tmp_2, probs = c(.8), na.rm = TRUE))),
-                list(color = "#fb6703",
-                     width = 2,
-                     value =  unname(quantile(dtemp$tmp_2, probs = c(.2), na.rm = TRUE))),
-                list(color = "#f0260f ",
-                     width = 2,
-                     value =  unname(quantile(dtemp$tmp_2, probs = c(0), na.rm = TRUE))),
                 list(color = "#f0260f ",
                      width = 2,
                      value =  unname(quantile(dtemp$tmp_2, probs = c(1), na.rm = TRUE)))

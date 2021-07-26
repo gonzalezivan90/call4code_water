@@ -35,9 +35,6 @@ RUN R -e "write('TMP = "/data/tempR"', file=file.path(Sys.getenv('R_USER'), '.Re
 # Copy everything from the current directory into the container
 COPY / /
 
-# Install forestChange from .tar
-RUN R -e "install.packages('forestChange_1.0.tar.gz', repos = NULL, type = 'source')"
-
 # open port 8000 to traffic
 EXPOSE 8000
 

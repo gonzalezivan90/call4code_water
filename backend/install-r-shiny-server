@@ -1,0 +1,38 @@
+  ls
+  df -h
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 #
+  sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' #
+  sudo apt-get update
+  sudo apt-get install r-base r-base-dev -Y # hit Y
+
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+  sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran40/'
+  sudo apt update
+  sudo apt install r-base # error
+sudo su - -c "R -e \"install.packages('shiny', repos='https://cran.rstudio.com/')\""
+  sudo apt-get install gdebi-core # Takes a while
+  wget https://download3.rstudio.org/ubuntu-14.04/x86_64/shiny-server-1.5.13.944-amd64.deb
+  sudo gdebi shiny-server-1.5.13.944-amd64.deb -y# hit Y
+  sudo systemctl start shiny-server
+  
+  ls /
+  
+  #### After shiny-server
+  # sudo su root # maybe required
+  sudo apt-get update -qq && apt-get install -y \
+  libssl-dev \
+  libcurl4-gnutls-dev \
+  libgdal-dev \
+  libproj-dev  \
+  gdal-bin ## install gdal
+  
+  sudo R
+  ## takes 20 min
+  sapply(c('rgdal','rgeos', 'shiny', 'leaflet', 'leaflet.extras', 
+   'shinydashboard', 'highcharter', 'devtools', 'shinycssloaders'), 
+  function(x) {if (!x %in% rownames(installed.packages())) install.packages(x)})
+
+if (!require("remotes")) {
+  install.packages("remotes")
+}
+remotes::install_github("jcrodriguez1989/shinyParallel")

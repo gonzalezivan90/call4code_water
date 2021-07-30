@@ -1,0 +1,4 @@
+500 USD Shawee
+5.000 USD IBM regional
+10.000 USD IBM student 
+200.000 USD IBM Global

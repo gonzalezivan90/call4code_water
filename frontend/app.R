@@ -77,16 +77,17 @@ ui <- dashboardPage(skin = 'green',
                       sidebarMenu(
                         
       
-                        menuItem("Start here", tabName = "intro", startExpanded = TRUE, icon = icon("hand-holding-water"), 
+                        menuItem("Start here", tabName = "tab_intro", startExpanded = TRUE, icon = icon("flag-checkered"), 
                                  menuSubItem(" -- Goal", tabName = "tab_goal", icon = icon("flag-checkered")),
-                                 menuSubItem(" -- Purpouse", tabName = "tab_purp", icon = icon("lightbulb")),
+                                 menuSubItem(" -- Purpose", tabName = "tab_purp", icon = icon("lightbulb")), # 
                                  menuSubItem(" -- How it works", tabName = "tab_works", icon = icon("cogs")),
                                  menuSubItem(" -- Future", tabName = "tab_future", icon = icon("rocket")),
                                  menuSubItem(" -- Team", tabName = "tab_team", icon = icon("users-cog"))
                         ),
                         
-                        menuItem("Find water!", tabName = "tab_findwater", icon = icon("map-pin")),
-                        menuItem("Assess water!", tabName = "tab_assess", icon = icon("poll"))
+                        menuItem("Find water", tabName = "tab_findwater", icon = icon("map-pin")),
+                        menuItem("Assess quality", tabName = "tab_assess", icon = icon("poll")),
+                        menuItem("Conserve water", tabName = "tab_forest", icon = icon("hand-holding-water"))
                       )
                     ),
                     
@@ -142,13 +143,30 @@ ui <- dashboardPage(skin = 'green',
                                            column(width = 6, br(), actionButton("go_assess", "Assess"))),
                                          fluidRow(
                                            leafletOutput("assessLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")
-                                          )
+                                         )
                                   ),
                                   column(width = 6, 
+                                         valueBoxOutput("waterquality"),
                                          highchartOutput("assessPlot1", height = "400px") %>% withSpinner(color="#0dc5c1"), 
                                          highchartOutput("assessPlot2", height = "300px")%>% withSpinner(color="#0dc5c1"), 
-                                         highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1")
-                                         #highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1")
+                                         highchartOutput("assessFor", height = "300px")%>% withSpinner(color="#0dc5c1"),
+                                         highchartOutput("assessPlot3", height = "300px")%>% withSpinner(color="#0dc5c1")
+                                  )
+                                )
+                        ),
+                        
+                        tabItem("tab_forest",
+                                #fluidRow(h3(' ')),
+                                #h5(''),
+                                fluidRow(
+                                  column(width = 12,
+                                         actionButton("go_forest", "Conserve the basin!"),
+                                         tabsetPanel(type = 'pills',
+                                                     tabPanel('Tree cover',
+                                                              leafletOutput("treeLeaf", height = "600px")%>% withSpinner(color="#0dc5c1")),
+                                                     tabPanel('Deforestation',
+                                                              leafletOutput("yearLeaf", height = "600px")%>% withSpinner(color="#0dc5c1"))
+                                         )
                                   )
                                 )
                         )
@@ -178,7 +196,7 @@ server <- function(input, output, session) {
   
   ##### Leaflets ----------------------
   
-  output$findLeaf <- output$assessLeaf <- output$leafForest <- renderLeaflet({
+  output$findLeaf <- output$assessLeaf <- output$leafForest <- output$treeForest <- output$lossForest <- renderLeaflet({
     reactShp$leaf0 %>%
       leaflet.extras::addDrawToolbar(targetGroup='draw', polylineOptions = FALSE,
                                      rectangleOptions = FALSE, circleOptions = FALSE,
@@ -217,7 +235,7 @@ server <- function(input, output, session) {
   ##### Reactive maps  ----------------------  
   observeEvent(input$findLeaf_click, {
     click <- input$findLeaf_click
-    text<-paste("Lattitude:", round(click$lat, 2),
+    text<-paste("Lattitude:", round(click$lat, 4),
                 "<br>Longtitude:", round(click$lng, 4),
                 "<br>Date:", Sys.Date())
     proxy <- leafletProxy("findLeaf")
@@ -239,13 +257,16 @@ server <- function(input, output, session) {
   ##### Go find water  ----------------------  
   isolate(observeEvent(input$go_find,{
     
+    so <- Sys.time()
     #polDraw <- input$leafForest_draw_new_feature
     isolate(output$findLeaf <- isolate(renderLeaflet({
       
       isolate(inClick <- isolate(input$findLeaf_click))
       #print(str(inClick))
+      #inClick <- list(lat = 9, lng = 2, .nonce = .21)
       
       ptsCoord <<- c(lon = inClick$lng, lat = inClick$lat)
+      #ptsCoord <<- c(lon = -74, lat = 4)
       aoiPoint <<- ee$Geometry$Point(ptsCoord);
       basaoi <<- basWWF$filterBounds(aoiPoint);
       
@@ -317,13 +338,16 @@ server <- function(input, output, session) {
       
       if ( Sys.info()["sysname"] == "Windows"){
         save(spDf, slDf, snpDf,ptsCoord, leafGee, file = 'temp.RData')
-        #load('temp.RData')
+        # load('temp.RData')
       }
+      print(so- Sys.time())
       leafGee 
       
     })))
     
     isolate(output$assessLeaf <- isolate(renderLeaflet({leafGee})))
+    isolate(output$yearLeaf <- isolate(renderLeaflet({leafGee})))
+    isolate(output$treeLeaf <- isolate(renderLeaflet({leafGee})))
     
     isolate(output$voutdist <- isolate(renderText({
       ## Return text
@@ -337,42 +361,250 @@ server <- function(input, output, session) {
     readyLayer <<- TRUE
   }))
   
+  
   ##### Go assess water  ----------------------  
   isolate(observeEvent(input$go_assess,{
-    print('ReadyLayer')
-    print(readyLayer)
-    isolate(output$assessLeaf <- isolate(renderLeaflet({
+    # print('ReadyLayer')
+    # print(readyLayer)
+    
+    chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
+    temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
+    tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
+    loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
+    ptsCoord <<- c(lon = inClick$lng, lat = inClick$lat)
+    #ptsCoord <<- c(lon = -74, lat = 4)
+    aoiPoint <<- ee$Geometry$Point(ptsCoord);
+    basaoi <<- basWWF$filterBounds(aoiPoint);
+    
+    stat.i <- data.frame(today = Sys.Date(), end = Sys.Date())
+    # input <- list(in_days = 60)
+    #print(str(input$in_days))
+    stat.i$start <- Sys.Date() - 30 - as.numeric(input$in_days)
+    stat.i$start_s <- as.character(stat.i$start)
+    stat.i$end_s <- as.character(stat.i$end)
+    
+    
+    ####### CHIRPS ###### SUM ------
+    
+    # basaoi
+    #print('Chirps:')
+    #print(class(chirps))
+    chirps.i <- chirps$filterDate(stat.i$start_s, stat.i$end_s)
+    #print('a')
+    chirps.red <- chirps.i$map(function(imag, red, sc, bn) {
+      # imag <- chirps.i$first()
+      val0 <- imag$reduceRegion(reducer = ee$Reducer$sum() ,
+                                geometry = basaoi, scale = 5500)$get('precipitation')
+      val <- ee$Algorithms$If(val0, val0, ee$Number(-9999))
+      #val$getInfo()
+      xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$ 
+        set("precipitation", val)$set("system:index", imag$get("system:index"))
+      return(xy )
+    })
+    
+    (x1 <- chirps.red$aggregate_array('precipitation')) ; #
+    system.time(i.ppt <- x1$getInfo())
+    (x2 <- chirps.red$aggregate_array('system:index')) ; 
+    system.time(i.dates <- x2$getInfo())
+    
+    # chirps.n <- chirps.i$first()$reduceRegion(reducer = ee$Reducer$count() ,
+    #                                geometry = bas.g, scale = 5500)
+    
+    
+    #### TEMP ###### MEAN
+    
+    temp.i <- temp$filterDate(stat.i$start_s, stat.i$end_s)
+    temp.red <- temp.i$map(function(imag, red, sc, bn) {
+      # imag <- temp.i$first()
+      val <- imag$select('LST_Day_1km')$reduceRegion(reducer = ee$Reducer$mean() ,
+                                                     geometry = basaoi, scale = 1000)$get('LST_Day_1km')
+      val <- ee$Algorithms$If(val, val, ee$Number(-9999))
+      xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$
+        set("LST_Day_1km", val)$set("system:index", imag$get("system:index"))
+      return(xy )
+    })
+    
+    (x1 <- temp.red$aggregate_array('LST_Day_1km')) ; #
+    system.time(i.temp <- x1$getInfo())
+    (x2 <- temp.red$aggregate_array('system:index')) ;
+    system.time(i.temp.dates <- x2$getInfo())
+    
+    
+    
+    
+    
+    
+    ## GEE TS --------------
+    tree.i <- tree$reduceRegion(
+      reducer = ee$Reducer$histogram(maxBuckets =  10),
+      geometry = basaoi,
+      scale = 30)
+    
+    system.time(hist.tree <- tree.i$getInfo()) # faster than in cliping image
+    
+    #str(hist.tree$treecover2000$bucketMeans)
+    #str(hist.tree$treecover2000)
+    
+    #### LOSS
+    loss.i <- loss$reduceRegion(
+      reducer = ee$Reducer$histogram(maxBuckets =  30),
+      geometry = basaoi,
+      scale = 30)
+    
+    hist.loss <- loss.i$getInfo()
+    #str(hist.loss)
+    
+    
+    baskm2 <- raster::area(spDf)/1000000
+    treeDf <- data.frame(bins = hist.tree$treecover2000$bucketMeans,
+                         his = hist.tree$treecover2000$histogram)
+    treeDf$km2 <- treeDf$his/sum(treeDf$his)*baskm2
+    treeDf$prop <- treeDf$km2/baskm2 # sum(treeDf$prop)
+    
+    lossDf <- data.frame(bins = unlist(hist.loss$lossyear$bucketMeans),
+                         his = unlist(hist.loss$lossyear$histogram))
+    
+    lossDf$km2 <- lossDf$his/sum(lossDf$his)*baskm2
+    lossDf$prop <- lossDf$his/baskm2
+    
+    (lossTs <- data.frame(loss = sum(treeDf$prop[treeDf$bins>1])*100 - cumsum(c(0,lossDf$prop[-1])),
+                          yy = 2000 + lossDf$bins))
+    
+    
+    ## GEE DF --------------
+    
+    # ## Chirps
+    dchirps <- cbind.data.frame(ymd = unlist(i.dates), chirps = unlist(i.ppt))
+    dchirps$chirps[dchirps$chirps == -9999] <- NA
+    dchirps$ymd <- as.Date(dchirps$ymd, format = '%Y%m%d')
+    dchirps$ym <- substr(0, 7, x = dchirps$ymd)
+    
+    
+    dtemp <- data.frame(ymd = unlist(i.temp.dates), tmp = (unlist(i.temp) * 0.02) - 273.15)
+    dtemp$tmp[which(dtemp == -999)] <- NA
+    dtemp$ymd <- as.Date(dtemp$ymd, format = '%Y_%m_%d')
+    dtemp$ym <- substr(0, 7, x = dtemp$ymd)
+    
+    
+    ## TS  plots --------------
+    
+    output$assessFor <- renderHighchart({ 
+      hcF <<- highchart() %>% hc_add_series(name = 'Area in forest (%)',
+                                            type = "line",
+                                            color = 'green',
+                                            mapping = hcaes(x = yy, y = loss),
+                                            data = lossTs) %>%
+        hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+        hc_xAxis(title = list(text = paste('Year'))) %>%
+        hc_exporting(enabled = TRUE)
+      
+      
+    })
+    
+    #rain
+    output$assessPlot1 <- renderHighchart({ 
+      hc1 <<- highchart() %>% hc_add_series(name = 'mm/day',
+                                            type = "line",
+                                            color = 'blue',
+                                            mapping = hcaes(x = ymd, y = chirps),
+                                            data = dchirps) %>%
+        hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+        hc_xAxis(title = list(text = paste('Year')),
+                 labels = list(format = '{value:%Y-%m-%d}')) %>%
+        hc_exporting(enabled = TRUE) %>% hc_yAxis(
+          plotLines = list(
+            list(color = "#074632",
+                 width = 2,
+                 value = mean(dchirps$chirps, na.rm = TRUE)), 
+            list(color = "#fb6703",
+                 width = 2,
+                 value =  unname(quantile(dchirps$chirps, probs = c(.8), na.rm = TRUE))),
+            list(color = "#fb6703",
+                 width = 2,
+                 value =  unname(quantile(dchirps$chirps, probs = c(.2), na.rm = TRUE))),
+            list(color = "#f0260f ",
+                 width = 2,
+                 value =  unname(quantile(dchirps$chirps, probs = c(.05), na.rm = TRUE))),
+            list(color = "#f0260f ",
+                 width = 2,
+                 value =  unname(quantile(dchirps$chirps, probs = c(1), na.rm = TRUE)))
+          )
+        )
+    })
+    
+    
+    output$assessPlot2 <- renderHighchart({ 
+      dtemp$tmp_2 <- round(dtemp$tmp, 2)
+      hc2 <<- highchart() %>% hc_add_series(name = '°C',
+                                            type = "line",
+                                            color = 'orange',
+                                            mapping = hcaes(x = ymd, y = tmp_2),
+                                            data = dtemp) %>%
+        hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
+        hc_xAxis(title = list(text = paste('Year')),
+                 labels = list(format = '{value:%Y-%m-%d}')) %>%
+        hc_exporting(enabled = TRUE) %>% hc_yAxis(
+          plotLines = list(
+            list(color = "#074632",
+                 width = 2,
+                 value = mean(dtemp$tmp_2, na.rm = TRUE)), 
+            list(color = "#fb6703",
+                 width = 2,
+                 value =  unname(quantile(dtemp$tmp_2, probs = c(.8), na.rm = TRUE))),
+            list(color = "#f0260f ",
+                 width = 2,
+                 value =  unname(quantile(dtemp$tmp_2, probs = c(1), na.rm = TRUE)))
+          )
+        )
+      
+      hc2
+  })
+  }))
+  
+  
+  output$waterquality <- renderValueBox({
+    d.time = 10
+    valueBox(
+      d.time ,
+      "Water quality",
+      icon = icon("percent"),
+      color = if (d.time <= 10) {'red'}  else
+        if(d.time > 10 & d.time <= 20 ) {'orange'} else
+          if(d.time > 20 & d.time <= 40 ) {'yellow'} else
+            if(d.time > 40 & d.time <= 60 ) {'lime'} else
+              if(d.time > 60 & d.time <= 100 ) {'green'}
+    )
+  })
+  
+  ##### Go conserve water forest  ----------------------  
+  
+    
+  isolate(observeEvent(input$go_forest,{
+    isolate(output$treeLeaf <- isolate(renderLeaflet({
       
       if(!readyLayer ){
         output$assessPlot1 <- renderHighchart({
           hcNOP
         })
-        
-        reactShp$leaf0
-        
+        treegee <- reactShp$leaf0
       } else {
         
-        chirps <<- ee$ImageCollection("UCSB-CHG/CHIRPS/DAILY")$select('precipitation'); # mm/hr
-        temp <<- ee$ImageCollection("MODIS/006/MOD11A2")$select('LST_Day_1km') #  kelvin
         tree <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('treecover2000') 
         loss <<- ee$Image("UMD/hansen/global_forest_change_2019_v1_7")$select('lossyear') 
         
         #### TREE --- maps leaf
         
-        tree.clip <- tree$clip(basaoi)
-        loss.clip <- loss$clip(basaoi)
-        
-        # tree.clip2day <- tree.clip$updateMask(loss.clip$bt(0))
-        # 
-        # tree.clip <- tree.clip$updateMask(loss.clip$bt(0))
-        # loss.clip <- loss$clip(basaoi)$updateMask(tree.clip$gte(10))
-        loss.clip <- loss$clip(basaoi)$updateMask(loss$neq(0))
-        
         Map$centerObject(basaoi)
-        lltree <- Map$addLayer(tree.clip, name = 'Tree cover',
+        tree.mask <- tree$updateMask(loss$unmask(-999)$eq(-999))
+        
+        lltree0 <- Map$addLayer(tree$clip(basaoi), name = 'Tree cover0',
                                visParams = list(min = 0, max = 100, 
                                                 palette = c("E6EEF5", "1E5A0D"))) 
-        llloss <- Map$addLayer(loss.clip, name = 'Deforestation',
+        
+        lltree <- Map$addLayer(tree.mask$clip(basaoi), name = 'Tree cover',
+                               visParams = list(min = 0, max = 100, 
+                                                palette = c("E6EEF5", "1E5A0D"))) 
+        llloss <- Map$addLayer(loss$clip(basaoi), name = 'Deforestation',
                                visParams = list(min = 0, max = 20, 
                                                 palette = c("B7D114", "D11439")))
         # lltree2day <- Map$addLayer(tree.clip2day, 
@@ -381,235 +613,47 @@ server <- function(input, output, session) {
         
         palTree <- colorNumeric(palette = c("#E6EEF5", "#1E5A0D"), domain = c(0, 100))
         palLoss <- colorNumeric(palette = c("#B7D114", "#D11439"), domain = 2000+c(0, 20))
-        
+        print('chek2')
         #centerObject
         # names(lltree) # from rgee
-        # names(leafGee)
+        #names(leafGee)
+        #str(leafGee)
         # lltree$rgee
         # 
         # class(lltree)
         # class(leafGee)
         # leafGee <- Reduce('+',  list(mapBas, mapRiv, mapOrig, mapDest) )
         
-        #treegee2 <-  (leafGee + lltree[[names(leafGee)]] + llloss[[names(leafGee)]] )
-        treegee <- as(leafGee + lltree + llloss, Class = c("leaflet"))
-          
-        treegee <-  treegee %>% addLegend("bottomright", pal = palTree, values = c(0, 100), title = "Forest cover", opacity = 1) %>% 
-          addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20), title = "Def. year", opacity = 1)
-        
-        
-        tempNameLeaf <- paste0(outDir, '/', basename(tempfile()), '.RData')
-        save(treegee, file = tempNameLeaf)
-        load(tempNameLeaf)
+        isolate(output$yearLeaf <- isolate(renderLeaflet({
+          llloss
+        })))
         
         if ( Sys.info()["sysname"] == "Windows" 
              #| any(grep('azure', Sys.info()["release"]))
         ){
           
+        #treegee2 <-  (leafGee + lltree[[names(leafGee)]] + llloss[[names(leafGee)]] )
+        treegee <- as(leafGee + lltree + lltree0 + llloss, Class = c("leaflet"))
+          
+        treegee <-  treegee %>% addLegend("bottomright", pal = palTree, values = c(0, 100), title = "Forest cover", opacity = 1) %>% 
+          addLegend("bottomright", pal = palLoss, values = 2000+c(0, 20), title = "Def. year", opacity = 1)
+        
+        # tempNameLeaf <- paste0(outDir, '/', basename(tempfile()), '.RData')
+        # save(treegee, file = tempNameLeaf)
+        # load(tempNameLeaf)
           treegee
-          
+          print('chek3')
         } else {
-          Map$centerObject(basaoi)
-          tree.mask <- tree.clip$updateMask(loss.clip$gt(1))
-          lltreemask <- Map$addLayer(tree.mask, name = 'Tree cover',
-                                 visParams = list(min = 0, max = 100, 
-                                                  palette = c("E6EEF5", "1E5A0D"))) 
-          treegee <- lltreemask  # leafGee
+          warning('linux rgee leaf output')
+          
+          treegee <<- lltree  # leafGee
         }
+        print('chek1')
         
-        
-        
-        
-        
-        
-        stat.i <- data.frame(today = Sys.Date(), end = Sys.Date())
-        # input <- list(in_days = 60)
-        #print(str(input$in_days))
-        stat.i$start <- Sys.Date() - 30 - as.numeric(input$in_days)
-        stat.i$start_s <- as.character(stat.i$start)
-        stat.i$end_s <- as.character(stat.i$end)
-        
-        
-        ####### CHIRPS ###### SUM ------
-        
-        # basaoi
-        #print('Chirps:')
-        #print(class(chirps))
-        chirps.i <- chirps$filterDate(stat.i$start_s, stat.i$end_s)
-        #print('a')
-        chirps.red <- chirps.i$map(function(imag, red, sc, bn) {
-          # imag <- chirps.i$first()
-          val0 <- imag$reduceRegion(reducer = ee$Reducer$sum() ,
-                                    geometry = basaoi, scale = 5500)$get('precipitation')
-          val <- ee$Algorithms$If(val0, val0, ee$Number(-9999))
-          #val$getInfo()
-          xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$ 
-            set("precipitation", val)$set("system:index", imag$get("system:index"))
-          return(xy )
-        })
-        
-        (x1 <- chirps.red$aggregate_array('precipitation')) ; #
-        system.time(i.ppt <- x1$getInfo())
-        (x2 <- chirps.red$aggregate_array('system:index')) ; 
-        system.time(i.dates <- x2$getInfo())
-        
-        # chirps.n <- chirps.i$first()$reduceRegion(reducer = ee$Reducer$count() ,
-        #                                geometry = bas.g, scale = 5500)
-        
-        
-        #### TEMP ###### MEAN
-        
-        temp.i <- temp$filterDate(stat.i$start_s, stat.i$end_s)
-        temp.red <- temp.i$map(function(imag, red, sc, bn) {
-          # imag <- temp.i$first()
-          val <- imag$select('LST_Day_1km')$reduceRegion(reducer = ee$Reducer$mean() ,
-                                                         geometry = basaoi, scale = 1000)$get('LST_Day_1km')
-          val <- ee$Algorithms$If(val, val, ee$Number(-9999))
-          xy <- ee$Feature(NULL, list("val" = val))$#set("system:time_start", imag$get("system:time_start"))$
-            set("LST_Day_1km", val)$set("system:index", imag$get("system:index"))
-          return(xy )
-        })
-        
-        (x1 <- temp.red$aggregate_array('LST_Day_1km')) ; #
-        system.time(i.temp <- x1$getInfo())
-        (x2 <- temp.red$aggregate_array('system:index')) ;
-        system.time(i.temp.dates <- x2$getInfo())
-        
-        
-        
-        
-        
-        
-        ## GEE TS --------------
-        tree.i <- tree$reduceRegion(
-          reducer = ee$Reducer$histogram(maxBuckets =  10),
-          geometry = basaoi,
-          scale = 30)
-        
-        system.time(hist.tree <- tree.i$getInfo()) # faster than in cliping image
-        
-        #str(hist.tree$treecover2000$bucketMeans)
-        #str(hist.tree$treecover2000)
-        
-        #### LOSS
-        loss.i <- loss$reduceRegion(
-          reducer = ee$Reducer$histogram(maxBuckets =  30),
-          geometry = basaoi,
-          scale = 30)
-        
-        hist.loss <- loss.i$getInfo()
-        #str(hist.loss)
-        
-        
-        baskm2 <- raster::area(spDf)/1000000
-        treeDf <- data.frame(bins = hist.tree$treecover2000$bucketMeans,
-                             his = hist.tree$treecover2000$histogram)
-        treeDf$km2 <- treeDf$his/sum(treeDf$his)*baskm2
-        treeDf$prop <- treeDf$km2/baskm2 # sum(treeDf$prop)
-        
-        lossDf <- data.frame(bins = unlist(hist.loss$lossyear$bucketMeans),
-                             his = unlist(hist.loss$lossyear$histogram))
-        
-        lossDf$km2 <- lossDf$his/sum(lossDf$his)*baskm2
-        lossDf$prop <- lossDf$his/baskm2
-        
-        (lossTs <- data.frame(loss = sum(treeDf$prop[treeDf$bins>1])*100 - cumsum(c(0,lossDf$prop[-1])),
-                              yy = 2000 + lossDf$bins))
-        
-        
-        ## GEE DF --------------
-        
-        # ## Chirps
-        dchirps <- cbind.data.frame(ymd = unlist(i.dates), chirps = unlist(i.ppt))
-        dchirps$chirps[dchirps$chirps == -9999] <- NA
-        dchirps$ymd <- as.Date(dchirps$ymd, format = '%Y%m%d')
-        dchirps$ym <- substr(0, 7, x = dchirps$ymd)
-        
-        
-        dtemp <- data.frame(ymd = unlist(i.temp.dates), tmp = (unlist(i.temp) * 0.02) - 273.15)
-        dtemp$tmp[which(dtemp == -999)] <- NA
-        dtemp$ymd <- as.Date(dtemp$ymd, format = '%Y_%m_%d')
-        dtemp$ym <- substr(0, 7, x = dtemp$ymd)
-        
-        
-        ## TS  plots --------------
-        
-        output$assessFor <- renderHighchart({ 
-          hcF <<- highchart() %>% hc_add_series(name = 'Area in forest (%)',
-                                                type = "line",
-                                                color = 'green',
-                                                mapping = hcaes(x = yy, y = loss),
-                                                data = lossTs) %>%
-            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
-            hc_xAxis(title = list(text = paste('Year'))) %>%
-            hc_exporting(enabled = TRUE)
-          
-          
-        })
-        
-        #rain
-        output$assessPlot1 <- renderHighchart({ 
-          hc1 <<- highchart() %>% hc_add_series(name = 'mm/day',
-                                                type = "line",
-                                                color = 'blue',
-                                                mapping = hcaes(x = ymd, y = chirps),
-                                                data = dchirps) %>%
-            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
-            hc_xAxis(title = list(text = paste('Year')),
-                     labels = list(format = '{value:%Y-%m-%d}')) %>%
-            hc_exporting(enabled = TRUE) %>% hc_yAxis(
-              plotLines = list(
-                list(color = "#074632",
-                     width = 2,
-                     value = mean(dchirps$chirps, na.rm = TRUE)), 
-                list(color = "#fb6703",
-                     width = 2,
-                     value =  unname(quantile(dchirps$chirps, probs = c(.8), na.rm = TRUE))),
-                list(color = "#fb6703",
-                     width = 2,
-                     value =  unname(quantile(dchirps$chirps, probs = c(.2), na.rm = TRUE))),
-                list(color = "#f0260f ",
-                     width = 2,
-                     value =  unname(quantile(dchirps$chirps, probs = c(.05), na.rm = TRUE))),
-                list(color = "#f0260f ",
-                     width = 2,
-                     value =  unname(quantile(dchirps$chirps, probs = c(1), na.rm = TRUE)))
-              )
-            )
-        })
-        
-        
-        output$assessPlot2 <- renderHighchart({ 
-          dtemp$tmp_2 <- round(dtemp$tmp, 2)
-          hc2 <<- highchart() %>% hc_add_series(name = '°C',
-                                                type = "line",
-                                                color = 'orange',
-                                                mapping = hcaes(x = ymd, y = tmp_2),
-                                                data = dtemp) %>%
-            hc_title(text = paste( 'Area:', round(baskm2,3), 'km2')) %>%
-            hc_xAxis(title = list(text = paste('Year')),
-                     labels = list(format = '{value:%Y-%m-%d}')) %>%
-            hc_exporting(enabled = TRUE) %>% hc_yAxis(
-              plotLines = list(
-                list(color = "#074632",
-                     width = 2,
-                     value = mean(dtemp$tmp_2, na.rm = TRUE)), 
-                list(color = "#fb6703",
-                     width = 2,
-                     value =  unname(quantile(dtemp$tmp_2, probs = c(.8), na.rm = TRUE))),
-                list(color = "#f0260f ",
-                     width = 2,
-                     value =  unname(quantile(dtemp$tmp_2, probs = c(1), na.rm = TRUE)))
-              )
-            )
-          
-          hc2
-        })
-        
-        treegee
       } # close if
-      
-    })))
+      treegee
+    })
+    ))
     
   }))
   

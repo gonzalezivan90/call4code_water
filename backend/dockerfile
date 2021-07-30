@@ -11,6 +11,26 @@ RUN apt-get update -qq && apt-get install -y \
 # Install mongo prerequisites
 RUN apt-get install -y libssl-dev libsasl2-dev libudunits2-dev
 
+# Install Python and libraries
+RUN apt-get install -y \
+		python3-pip \
+		python3-dev \
+	&& pip3 install virtualenv
+
+RUN pip3 install coveralls \
+    oauth2client \
+    numpy \
+    requests_toolbelt \
+    earthengine-api \
+    pyasn1
+
+# Install anaconda
+
+RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
+    wget --quiet https://repo.continuum.io/archive/Anaconda2-4.3.1-Linux-x86_64.sh -O ~/anaconda.sh && \
+    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
+    rm ~/anaconda.sh
+
 # Install R packages
 RUN R -e "install.packages('rgdal')"
 RUN R -e "install.packages('raster')"
@@ -18,16 +38,19 @@ RUN R -e "install.packages('gdalUtils')"
 RUN R -e "install.packages('rgeos')"
 RUN R -e "install.packages('plumber')"
 RUN R -e "install.packages('foreign')"
-RUN R -e "install.packages('landscapemetrics')"
-RUN R -e "install.packages('mongolite')"
-RUN R -e "install.packages('aws.s3')"
 RUN R -e "install.packages('gdalUtilities')"
 RUN R -e "install.packages('rasterDT')"
 RUN R -e "install.packages('rvest')"
 RUN R -e "install.packages('dplyr')"
-RUN R -e "install.packages('forestChange')"
+RUN R -e "install.packages('leaflet')"
+RUN R -e "install.packages('leaflet.extras')"
+RUN R -e "install.packages('maptools')"
+RUN R -e "install.packages('remotes')"
+RUN R -e 'remotes::install_github("r-spatial/rgee")'
 
 
+RUN  mkdir -p /home/rgee/.config/earthengine/ndef && \
+     echo 'EARTHENGINE_PYTHON=/usr/bin/python3\nEARTHENGINE_INIT_MESSAGE="True"' > /home/rgee/.Renviron    
 
 # Assign the temporal folder in the external drive
 RUN R -e "write('TMP = "/data/tempR"', file=file.path(Sys.getenv('R_USER'), '.Renviron'))"

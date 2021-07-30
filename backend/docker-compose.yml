@@ -1,34 +1,12 @@
 version: '3.6'
 services:
-  mongo:
-    image: mongo:3.6.17-xenial
-    container_name: mongodb
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin_mongodb
-      MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: dbuser
-    ports:
-      - 27017:27017
-    volumes:
-      - mongo_storage:/data/db
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    networks:
-      biotablero_net:
-        aliases:
-            - "biotablerodb"
-
   api:
     build: .
-    image: biotablero:latest
-    container_name: biotablero
+    image: forest4water:latest
+    container_name: forest4water
     restart: always
-    depends_on:
-        - mongo
     ports:
       - 8000:8000
-    env_file:
-      - ./s3.env
     deploy:
      replicas: 5
      restart_policy:
@@ -40,7 +18,7 @@ services:
     volumes:
      - /data:/data
     networks:
-      biotablero_net:
+      forest4water_net:
         aliases:
             - "api"
 
@@ -52,16 +30,12 @@ services:
     volumes: 
         - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks: 
-        - biotablero_net
+        - forest4water_net
     depends_on: 
         - api
     deploy:
       placement:
         constraints: [node.role == manager]
-
-volumes:
-  mongo_storage:
-
 networks:
-  biotablero_net:
+  forest4water_net:
     driver: overlay
